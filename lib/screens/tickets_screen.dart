@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
 import '../models/ticket_model.dart';
 import '../services/ticket_service.dart';
@@ -28,17 +27,17 @@ class _TicketsScreenState extends State<TicketsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('user_id');
-
-      if (userId != null) {
-        final tickets = await _ticketService.getUserTickets(userId);
-        setState(() {
-          _tickets = tickets;
-        });
-      }
+      final tickets = await _ticketService.getUserTickets();
+      setState(() {
+        _tickets = tickets;
+      });
     } catch (e) {
       print('Error loading tickets: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطا در بارگذاری تیکت‌ها: $e')));
+      }
     }
 
     setState(() => _isLoading = false);
@@ -67,6 +66,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
         return AppTheme.snappPrimary;
       case TicketStatus.cancelled:
         return Colors.red;
+      case TicketStatus.rejected:
+        return Colors.red;
     }
   }
 
@@ -79,6 +80,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
       case TicketStatus.completed:
         return Icons.check_circle;
       case TicketStatus.cancelled:
+        return Icons.cancel;
+      case TicketStatus.rejected:
         return Icons.cancel;
     }
   }
@@ -123,6 +126,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
                   _buildFilterChip('تکمیل شده', 'completed'),
                   const SizedBox(width: 8),
                   _buildFilterChip('لغو شده', 'cancelled'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('رد شده', 'rejected'),
                 ],
               ),
             ),

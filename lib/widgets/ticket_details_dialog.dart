@@ -17,6 +17,8 @@ class TicketDetailsDialog extends StatelessWidget {
         return AppTheme.snappPrimary;
       case TicketStatus.cancelled:
         return Colors.red;
+      case TicketStatus.rejected:
+        return Colors.red;
     }
   }
 
@@ -29,6 +31,8 @@ class TicketDetailsDialog extends StatelessWidget {
       case TicketStatus.completed:
         return Icons.check_circle;
       case TicketStatus.cancelled:
+        return Icons.cancel;
+      case TicketStatus.rejected:
         return Icons.cancel;
     }
   }
