@@ -1,12 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 import '../config/app_theme.dart';
 import 'home_screen.dart';
 import 'dynamic_services_screen.dart';
 import 'tickets_screen.dart';
-import 'special_services_screen.dart';
 import 'profile_screen.dart';
+import 'notifications_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,9 +19,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const ProfileScreen(),
-    const SpecialServicesScreen(),
     const TicketsScreen(),
     const DynamicServicesScreen(),
+    const NotificationsScreen(),
     const HomeScreen(),
   ];
 
@@ -41,76 +40,71 @@ class _MainScreenState extends State<MainScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(0.2),
-                    Colors.white.withOpacity(0.1),
+                    Colors.white.withValues(alpha: 0.5),
+                    Colors.white.withValues(alpha: 0.3),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                     spreadRadius: 2,
                   ),
                 ],
               ),
-              child: CrystalNavigationBar(
+              child: BottomNavigationBar(
                 currentIndex: _currentIndex,
-                height: 10,
-                unselectedItemColor: AppTheme.snappGray,
-                backgroundColor: Colors.transparent,
-                borderRadius: 30,
-                outlineBorderColor: Colors.transparent,
-                paddingR: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 20,
-                ),
-                itemPadding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 10,
-                ),
-                indicatorColor: AppTheme.snappPrimary,
-                selectedItemColor: Colors.white,
-                splashBorderRadius: 30,
-                enableFloatingNavBar: false,
-                enablePaddingAnimation: true,
                 onTap: (index) {
                   setState(() {
                     _currentIndex = index;
                   });
                 },
-                items: [
-                  CrystalNavigationBarItem(
-                    icon: Icons.person_rounded,
-                    unselectedIcon: Icons.person_outline_rounded,
-                    selectedColor: AppTheme.snappPrimary,
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                selectedItemColor: AppTheme.snappPrimary,
+                unselectedItemColor: AppTheme.snappGray,
+                selectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 10,
+                ),
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline_rounded),
+                    activeIcon: Icon(Icons.person_rounded),
+                    label: 'پروفایل',
                   ),
-                  CrystalNavigationBarItem(
-                    icon: Icons.star_rounded,
-                    unselectedIcon: Icons.star_outline_rounded,
-                    selectedColor: AppTheme.snappAccent,
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.confirmation_number_outlined),
+                    activeIcon: Icon(Icons.confirmation_number_rounded),
+                    label: 'تیکت‌ها',
                   ),
-                  CrystalNavigationBarItem(
-                    icon: Icons.confirmation_number_rounded,
-                    unselectedIcon: Icons.confirmation_number_outlined,
-                    selectedColor: AppTheme.snappPrimary,
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.grid_view_outlined),
+                    activeIcon: Icon(Icons.grid_view_rounded),
+                    label: 'خدمات',
                   ),
-                  CrystalNavigationBarItem(
-                    icon: Icons.grid_view_rounded,
-                    unselectedIcon: Icons.grid_view_outlined,
-                    selectedColor: AppTheme.snappSecondary,
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.notifications_outlined),
+                    activeIcon: Icon(Icons.notifications_rounded),
+                    label: 'اطلاع رسانی‌ها',
                   ),
-                  CrystalNavigationBarItem(
-                    icon: Icons.home_rounded,
-                    unselectedIcon: Icons.home_outlined,
-                    selectedColor: AppTheme.snappPrimary,
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home_outlined),
+                    activeIcon: Icon(Icons.home_rounded),
+                    label: 'خانه',
                   ),
                 ],
               ),

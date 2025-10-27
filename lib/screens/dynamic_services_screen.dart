@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/service_category_model.dart';
 import '../models/service_model.dart';
 import '../services/service_api.dart';
+import '../widgets/hamburger_menu.dart';
+import '../config/app_theme.dart';
 import 'service_form_screen.dart';
 
 class DynamicServicesScreen extends StatefulWidget {
@@ -49,7 +51,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('خطا در بارگذاری داده‌ها: $e')));
+        ).showSnackBar(SnackBar(content: Text('خطا در بارگذاری: $e')));
       }
     }
   }
@@ -88,42 +90,124 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.snappLightGray,
       appBar: AppBar(
-        title: const Text('دسته‌بندی خدمات'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.snappPrimary,
+        elevation: 0,
+        title: const Text(
+          'خدمات',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.refresh_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+              onPressed: _loadData,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(
+                  Icons.menu_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+          ),
         ],
       ),
+      endDrawer: const HamburgerMenu(),
       body: Column(
         children: [
-          // نوار جستجو
+          // نوار جستجوی مدرن
           Container(
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: TextField(
               controller: _searchController,
+              textDirection: TextDirection.rtl,
               decoration: InputDecoration(
                 hintText: 'دنبال چه چیزی میگردی؟',
-                prefixIcon: const Icon(Icons.filter_list),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () => _searchServices(_searchController.text),
+                hintStyle: TextStyle(
+                  color: AppTheme.snappGray.withOpacity(0.7),
+                  fontSize: 16,
                 ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: AppTheme.snappPrimary,
+                  size: 24,
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: AppTheme.snappGray,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchServices('');
+                        },
+                      )
+                    : IconButton(
+                        icon: Icon(
+                          Icons.filter_list_rounded,
+                          color: AppTheme.snappPrimary,
+                        ),
+                        onPressed: () =>
+                            _searchServices(_searchController.text),
+                      ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.white,
               ),
               onSubmitted: _searchServices,
+              onChanged: (value) {
+                setState(() {});
+              },
             ),
           ),
 
           // محتوای اصلی
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildLoadingState()
                 : _searchQuery.isNotEmpty
                 ? _buildSearchResults()
                 : _buildCategoriesView(),
@@ -133,116 +217,328 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
     );
   }
 
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.snappPrimary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: CircularProgressIndicator(
+              color: AppTheme.snappPrimary,
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'در حال بارگذاری...',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AppTheme.snappGray),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchResults() {
     if (_allServices.isEmpty) {
-      return const Center(child: Text('نتیجه‌ای یافت نشد'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.snappGray.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: AppTheme.snappGray,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'نتیجه‌ای یافت نشد',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.snappDark,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'لطفاً کلمات کلیدی دیگری امتحان کنید',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.snappGray),
+            ),
+          ],
+        ),
+      );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _allServices.length,
-      itemBuilder: (context, index) {
-        final service = _allServices[index];
-        return _buildServiceCard(service);
-      },
+    return Column(
+      children: [
+        // Header نتایج جستجو
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.snappPrimary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.snappPrimary.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.search_rounded,
+                color: AppTheme.snappPrimary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'نتایج جستجو',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.snappPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.snappPrimary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_allServices.length} نتیجه',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // لیست نتایج
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _allServices.length,
+            itemBuilder: (context, index) {
+              final service = _allServices[index];
+              return _buildModernServiceCard(service);
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildCategoriesView() {
     if (_categoriesWithServices.isEmpty) {
-      return const Center(child: Text('دسته‌بندی‌ای یافت نشد'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.snappGray.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.category_rounded,
+                size: 48,
+                color: AppTheme.snappGray,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'دسته‌بندی‌ای یافت نشد',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.snappDark,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'لطفاً بعداً دوباره تلاش کنید',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.snappGray),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: _categoriesWithServices.length,
       itemBuilder: (context, index) {
         final categoryData = _categoriesWithServices[index];
         final category = categoryData['category'] as ServiceCategory;
         final services = categoryData['services'] as List<Service>;
 
-        return _buildCategorySection(category, services);
+        return _buildModernCategorySection(category, services);
       },
     );
   }
 
-  Widget _buildCategorySection(
+  Widget _buildModernCategorySection(
     ServiceCategory category,
     List<Service> services,
   ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // هدر دسته‌بندی
+          // هدر دسته‌بندی مدرن
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.snappPrimary.withOpacity(0.1),
+                  AppTheme.snappSecondary.withOpacity(0.1),
+                ],
+              ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
             ),
             child: Row(
               children: [
-                Icon(
-                  _getIconData(category.icon),
-                  color: Colors.blue[700],
-                  size: 24,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.snappPrimary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.category_rounded,
+                    color: AppTheme.snappPrimary,
+                    size: 24,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         category.title,
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.snappDark,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (category.description != null)
+                      if (category.description != null) ...[
+                        const SizedBox(height: 4),
                         Text(
                           category.description!,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.snappGray),
                         ),
+                      ],
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    // نمایش تمام خدمات این دسته‌بندی
-                  },
-                  child: const Text('بیشتر...'),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.snappPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${services.length} خدمت',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
 
-          // لیست خدمات
+          // لیست خدمات مدرن
           Padding(
             padding: const EdgeInsets.all(16),
             child: services.isEmpty
-                ? const Text('خدمتی در این دسته‌بندی وجود ندارد')
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.8,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                ? Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.snappGray.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.inbox_rounded,
+                          size: 32,
+                          color: AppTheme.snappGray,
                         ),
-                    itemCount: services.length,
-                    itemBuilder: (context, index) {
-                      return _buildServiceCard(services[index]);
+                        const SizedBox(height: 8),
+                        Text(
+                          'خدمتی در این دسته‌بندی وجود ندارد',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.snappGray),
+                        ),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Calculate responsive card width based on screen size
+                      final screenWidth = constraints.maxWidth;
+                      final cardWidth = screenWidth < 400
+                          ? (screenWidth - 36) /
+                                2 // Smaller cards on narrow screens
+                          : (screenWidth - 48) /
+                                2; // Standard cards on wider screens
+
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: services.map((service) {
+                          return SizedBox(
+                            width: cardWidth,
+                            child: _buildGridServiceCard(service),
+                          );
+                        }).toList(),
+                      );
                     },
                   ),
           ),
@@ -251,79 +547,214 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
     );
   }
 
-  Widget _buildServiceCard(Service service) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: () => _navigateToServiceForm(service),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // آیکون خدمت
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.blue[100],
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Icon(
-                  _getIconData(service.icon),
-                  color: Colors.blue[700],
-                  size: 24,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // عنوان خدمت
-              Text(
-                service.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 4),
-
-              // توضیحات کوتاه
-              Text(
-                service.description,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              if (service.isPaidService) ...[
-                const SizedBox(height: 4),
+  Widget _buildGridServiceCard(Service service) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToServiceForm(service),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.orange[100],
+                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getIconData(service.icon),
+                    color: AppTheme.snappPrimary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: Text(
+                    service.title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppTheme.snappDark,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (service.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Flexible(
+                    child: Text(
+                      service.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.snappGray,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                if (service.isPaidService) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.orange.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      '${service.costAmount.toStringAsFixed(0)} تومان',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernServiceCard(Service service) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToServiceForm(service),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // آیکون سرویس
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getIconData(service.icon),
+                    color: AppTheme.snappPrimary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // اطلاعات سرویس
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppTheme.snappDark,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                        textDirection: TextDirection.rtl,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        service.description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.snappGray,
+                          height: 1.3,
+                        ),
+                        textDirection: TextDirection.rtl,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (service.isPaidService) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            '${service.costAmount.toStringAsFixed(0)} تومان',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // آیکون فلش
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.snappPrimary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    '${service.costAmount.toStringAsFixed(0)} تومان',
-                    style: TextStyle(
-                      fontSize: 8,
-                      color: Colors.orange[800],
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppTheme.snappPrimary,
+                    size: 16,
                   ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),

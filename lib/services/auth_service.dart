@@ -34,7 +34,6 @@ class AuthService {
       // Use the deployed function name
       return await invokeFunction('OTP');
     } catch (e) {
-      print('Error in sendVerificationCode: $e');
       return {'success': false, 'message': 'خطا در ارسال کد تایید'};
     }
   }

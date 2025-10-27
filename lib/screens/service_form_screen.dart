@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'dart:io';
 import '../models/service_model.dart';
 import '../models/service_field_model.dart';
 import '../services/service_api.dart';
 import '../services/ticket_service.dart';
+import '../services/arvan_upload_service.dart';
 
 class ServiceFormScreen extends StatefulWidget {
   final Service service;
@@ -22,9 +25,13 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
   final TicketService _ticketService = TicketService();
 
   final Map<String, dynamic> _formData = {};
+  final Map<String, File> _selectedFiles = {};
+  final Map<String, String> _uploadedFileUrls = {};
   List<ServiceField> _serviceFields = [];
   bool _isLoading = true;
   bool _isSubmitting = false;
+
+  // final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -482,29 +489,7 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
         );
 
       case FieldType.file:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              field.fieldLabel,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () => _selectFile(field),
-              icon: const Icon(Icons.attach_file),
-              label: const Text('انتخاب فایل'),
-            ),
-            if (_formData[field.fieldName] != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'فایل انتخاب شده: ${_formData[field.fieldName]}',
-                  style: TextStyle(color: Colors.green[700]),
-                ),
-              ),
-          ],
-        );
+        return _buildFileField(field);
     }
   }
 
@@ -538,10 +523,200 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
     }
   }
 
+  Widget _buildFileField(ServiceField field) {
+    final selectedFile = _selectedFiles[field.fieldName];
+    final uploadedUrl = _uploadedFileUrls[field.fieldName];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          field.fieldLabel,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+
+        // دکمه انتخاب فایل
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _selectFile(field),
+                icon: const Icon(Icons.attach_file),
+                label: const Text('انتخاب فایل'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (selectedFile != null)
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _uploadFile(field),
+                  icon: const Icon(Icons.cloud_upload),
+                  label: const Text('آپلود'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
+
+        // نمایش فایل انتخاب شده
+        if (selectedFile != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(_getFileIcon(selectedFile.path), color: Colors.blue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selectedFile.path.split('/').last,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        '${(selectedFile.lengthSync() / 1024).toStringAsFixed(1)} KB',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _removeFile(field),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // نمایش وضعیت آپلود
+        if (uploadedUrl != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green[200]!),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                const SizedBox(width: 8),
+                const Text('آپلود موفق'),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => _removeUploadedFile(field),
+                  child: const Text('حذف'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _selectFile(ServiceField field) async {
     // TODO: پیاده‌سازی انتخاب فایل
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('قابلیت آپلود فایل به زودی اضافه خواهد شد')),
+      const SnackBar(
+        content: Text('قابلیت انتخاب فایل به زودی اضافه خواهد شد'),
+      ),
+    );
+  }
+
+  Future<void> _uploadFile(ServiceField field) async {
+    final file = _selectedFiles[field.fieldName];
+    if (file == null) return;
+
+    try {
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      final fileUrl = await ArvanUploadService.uploadFile(
+        file,
+        'tickets/${field.serviceId}',
+        customFileName:
+            '${field.fieldName}_${DateTime.now().millisecondsSinceEpoch}${_getFileExtension(file.path)}',
+      );
+
+      setState(() {
+        _uploadedFileUrls[field.fieldName] = fileUrl;
+        _formData[field.fieldName] = fileUrl;
+      });
+
+      _showSuccess('فایل با موفقیت آپلود شد');
+    } catch (e) {
+      _showError('خطا در آپلود فایل: $e');
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  void _removeFile(ServiceField field) {
+    setState(() {
+      _selectedFiles.remove(field.fieldName);
+      _uploadedFileUrls.remove(field.fieldName);
+      _formData.remove(field.fieldName);
+    });
+  }
+
+  void _removeUploadedFile(ServiceField field) {
+    setState(() {
+      _uploadedFileUrls.remove(field.fieldName);
+      _formData.remove(field.fieldName);
+    });
+  }
+
+  IconData _getFileIcon(String filePath) {
+    final extension = filePath.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image;
+      default:
+        return Icons.attach_file;
+    }
+  }
+
+  String _getFileExtension(String filePath) {
+    return '.${filePath.split('.').last}';
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 

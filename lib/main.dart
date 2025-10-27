@@ -4,6 +4,14 @@ import 'config/app_theme.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/support_chat_screen.dart';
+import 'screens/dynamic_services_screen.dart';
+import 'screens/tickets_screen.dart';
+import 'screens/special_services_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/help_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,9 +31,18 @@ class MyApp extends StatelessWidget {
       title: 'Vista Net',
       theme: AppTheme.lightTheme,
       home: const AuthWrapper(),
+      debugShowCheckedModeBanner: false,
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainScreen(),
+        '/support-chat': (context) => const SupportChatScreen(),
+        '/services': (context) => const DynamicServicesScreen(),
+        '/tickets': (context) => const TicketsScreen(),
+        '/special-services': (context) => const SpecialServicesScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/help': (context) => const HelpScreen(),
       },
     );
   }

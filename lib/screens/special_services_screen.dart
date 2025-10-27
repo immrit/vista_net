@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../widgets/hamburger_menu.dart';
 
 class SpecialServicesScreen extends StatelessWidget {
   const SpecialServicesScreen({super.key});
@@ -9,9 +10,40 @@ class SpecialServicesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.snappLightGray,
       appBar: AppBar(
-        title: const Text('سرویس‌های ویژه'),
+        title: const Text(
+          'خدمات ویژه',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         backgroundColor: AppTheme.snappPrimary,
+        elevation: 0,
+        centerTitle: true,
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(
+                  Icons.menu_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+          ),
+        ],
       ),
+      endDrawer: const HamburgerMenu(),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

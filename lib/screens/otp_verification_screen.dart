@@ -26,7 +26,7 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _authService = AuthService();
-  late final TextEditingController _otpController;
+  TextEditingController? _otpController;
   bool _isLoading = false;
   bool _isResending = false;
   int _resendTimer = 60;
@@ -42,7 +42,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   void dispose() {
-    _otpController.dispose();
+    _otpController?.dispose();
     super.dispose();
   }
 
@@ -91,15 +91,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Future<void> _verifyCode() async {
     // Check if controller is still valid and mounted
-    if (!mounted) {
+    if (!mounted || _otpController == null) {
       return;
     }
 
-    if (_otpController.text.isEmpty) {
+    if (_otpController!.text.isEmpty) {
       return;
     }
 
-    if (_otpController.text.length != 5) {
+    if (_otpController!.text.length != 5) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -118,7 +118,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     // First verify the code
     final verifyResult = await _authService.verifyPhoneNumber(
       widget.phoneNumber,
-      _otpController.text,
+      _otpController!.text,
     );
 
     if (verifyResult['success']) {
@@ -319,7 +319,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   child: PinCodeTextField(
                     appContext: context,
                     length: 5,
-                    controller: _otpController,
+                    controller: _otpController!,
                     keyboardType: TextInputType.number,
                     animationType: AnimationType.fade,
                     pinTheme: PinTheme(
@@ -340,7 +340,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                     onCompleted: (value) {
-                      if (mounted) {
+                      if (mounted && _otpController != null) {
                         _verifyCode();
                       }
                     },
@@ -354,7 +354,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   onPressed: _isLoading
                       ? null
                       : () {
-                          if (mounted) {
+                          if (mounted && _otpController != null) {
                             _verifyCode();
                           }
                         },

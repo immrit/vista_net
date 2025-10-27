@@ -13,4 +13,21 @@ class AppConfig {
   static const int otpLength = 5;
   static const int otpExpirationMinutes = 5;
   static const int resendCooldownSeconds = 60;
+
+  // Arvan Cloud S3 Configuration
+  static const String arvanEndpoint = 's3.ir-thr-at1.arvanstorage.ir';
+  static const String arvanAccessKey = '7e5941c1-9eb4-430b-8700-2a47c4a707ba';
+  static const String arvanSecretKey =
+      '3e0ec2707773f6c7d9717ada23b6ce40870ad2789887ffc86d9b18e02b07224c';
+  static const String arvanBucketName = 'vistanet-manager';
+
+  // File Upload Configuration
+  static const int maxFileSizeMB = 10;
+  static const List<String> allowedImageTypes = ['jpg', 'jpeg', 'png', 'gif'];
+  static const List<String> allowedDocumentTypes = [
+    'pdf',
+    'doc',
+    'docx',
+    'txt',
+  ];
 }

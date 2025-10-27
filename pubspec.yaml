@@ -55,6 +55,10 @@ dependencies:
   
   # Crystal Navigation Bar for fancy bottom navigation
   crystal_navigation_bar: ^1.0.4
+  
+  # File handling and image picker
+  image_picker: ^1.0.7
+  # file_picker: ^6.1.1
 
 dev_dependencies:
   flutter_test:

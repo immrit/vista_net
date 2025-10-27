@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/hamburger_menu.dart';
+import 'feedback_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -82,16 +84,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppTheme.snappLightGray,
       appBar: AppBar(
         title: const Text(
-          'پروفایل من',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          'پروفایل',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 20,
+          ),
         ),
         backgroundColor: AppTheme.snappPrimary,
         elevation: 0,
+        centerTitle: true,
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(
+                  Icons.menu_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+          ),
+        ],
       ),
+      endDrawer: const HamburgerMenu(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                100,
+              ), // اضافه کردن padding پایین برای جلوگیری از پنهان شدن دکمه خروج
               child: Column(
                 children: [
                   // Profile Header
@@ -192,6 +226,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('این بخش به زودی فعال می‌شود'),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
+                    icon: Icons.feedback,
+                    title: 'بازخورد و پیشنهادات',
+                    subtitle: 'نظرات خود را با ما در میان بگذارید',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FeedbackScreen(),
                         ),
                       );
                     },
