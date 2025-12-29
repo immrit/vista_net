@@ -6,7 +6,7 @@ import '../services/chat_service.dart';
 import '../widgets/ticket_details_dialog.dart';
 import '../widgets/enhanced_tickets_table.dart';
 import '../widgets/hamburger_menu.dart';
-import 'ticket_chat_screen.dart';
+import '../features/support_chat/presentation/screens/ticket_chat_screen.dart';
 import 'support_chat_screen.dart';
 
 class TicketsScreen extends StatefulWidget {
@@ -116,7 +116,10 @@ class _TicketsScreenState extends State<TicketsScreen> {
   void _navigateToChat(TicketModel ticket) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => TicketChatScreen(ticket: ticket)),
+      MaterialPageRoute(
+        builder: (context) =>
+            TicketChatScreen(ticketId: ticket.id, ticketTitle: ticket.title),
+      ),
     );
   }
 
@@ -145,7 +148,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -167,7 +170,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Builder(
@@ -273,7 +276,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
           Icon(
             Icons.inbox_outlined,
             size: 80,
-            color: AppTheme.snappGray.withOpacity(0.5),
+            color: AppTheme.snappGray.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -312,7 +315,9 @@ class _TicketsScreenState extends State<TicketsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(ticket.status).withOpacity(0.1),
+                      color: _getStatusColor(
+                        ticket.status,
+                      ).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -360,7 +365,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: AppTheme.snappPrimary.withOpacity(0.1),
+                          color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: IconButton(
@@ -438,7 +443,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -456,7 +461,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -481,7 +486,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                       Text(
                         'سوالات خود را از پشتیبان بپرسید',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],

@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/auth_service.dart';
-import '../config/app_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_theme.dart';
+import '../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
-  bool _isLoading = false;
-  final _authService = AuthService();
 
   @override
   void dispose() {
@@ -33,67 +32,44 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _submitForm() async {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      // Hide keyboard
+      FocusScope.of(context).unfocus();
 
-      try {
-        // Check if user exists
-        final userExists = await _authService.checkUserExists(
-          _phoneController.text,
+      // Clear any previous errors
+      ref.read(authProvider.notifier).clearError();
+
+      // Send OTP using new provider
+      final success = await ref
+          .read(authProvider.notifier)
+          .sendOtp(_phoneController.text);
+
+      if (success && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                OtpVerificationScreen(phoneNumber: _phoneController.text),
+          ),
         );
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          if (userExists) {
-            // User exists, proceed to OTP verification for login
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OtpVerificationScreen(
-                  phoneNumber: _phoneController.text,
-                  fullName: '', // Will be fetched after verification
-                  isLogin: true,
-                ),
-              ),
-            );
-          } else {
-            // User doesn't exist, go to OTP verification for new users
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OtpVerificationScreen(
-                  phoneNumber: _phoneController.text,
-                  fullName: '',
-                  isLogin: false,
-                ),
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('خطا در برقراری ارتباط: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      } else if (mounted) {
+        final error = ref.read(authProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? 'خطا در ارسال کد'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -122,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.snappPrimary.withOpacity(0.3),
+                          color: AppTheme.snappPrimary.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -191,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Submit Button
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _submitForm,
+                    onPressed: isLoading ? null : _submitForm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.snappPrimary,
                       foregroundColor: Colors.white,
@@ -200,9 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 4,
-                      shadowColor: AppTheme.snappPrimary.withOpacity(0.4),
+                      shadowColor: AppTheme.snappPrimary.withValues(alpha: 0.4),
                     ),
-                    child: _isLoading
+                    child: isLoading
                         ? const SizedBox(
                             height: 24,
                             width: 24,
@@ -229,15 +205,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.snappPrimary.withOpacity(0.1),
-                          AppTheme.snappSecondary.withOpacity(0.1),
+                          AppTheme.snappPrimary.withValues(alpha: 0.1),
+                          AppTheme.snappSecondary.withValues(alpha: 0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.snappPrimary.withOpacity(0.3),
+                        color: AppTheme.snappPrimary.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -261,14 +237,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Terms and Privacy
-                  Text(
-                    'با ادامه، شما شرایط و قوانین استفاده از اپلیکیشن را می‌پذیرید',
-                    style: TextStyle(fontSize: 12, color: AppTheme.snappGray),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

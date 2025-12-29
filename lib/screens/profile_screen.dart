@@ -1,52 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_theme.dart';
-import '../services/auth_service.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
 import '../widgets/hamburger_menu.dart';
 import 'feedback_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _authService = AuthService();
-  Map<String, dynamic>? _userProfile;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
-  }
-
-  Future<void> _loadUserProfile() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('user_id');
-      final phoneNumber = prefs.getString('phone_number');
-      final fullName = prefs.getString('full_name');
-
-      if (userId != null) {
-        setState(() {
-          _userProfile = {
-            'id': userId,
-            'phone_number': phoneNumber,
-            'full_name': fullName,
-          };
-        });
-      }
-    } catch (e) {
-      print('Error loading profile: $e');
-    }
-
-    setState(() => _isLoading = false);
-  }
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  // We don't fetch from shared preferences anymore for auth info
+  // We use currentUserProvider
 
   Future<void> _signOut() async {
     final confirmed = await showDialog<bool>(
@@ -73,13 +41,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await _authService.signOut();
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      await ref.read(authProvider.notifier).signOut();
+      // main.dart will handle navigation
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final phone = user?['phone_number'] ?? '';
+    final name = user?['full_name'] as String? ?? 'کاربر';
+
     return Scaffold(
       backgroundColor: AppTheme.snappLightGray,
       appBar: AppBar(
@@ -98,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Builder(
@@ -117,190 +89,169 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       endDrawer: const HamburgerMenu(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                100,
-              ), // اضافه کردن padding پایین برای جلوگیری از پنهان شدن دکمه خروج
-              child: Column(
-                children: [
-                  // Profile Header
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppTheme.snappPrimary,
-                                  AppTheme.snappSecondary,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _userProfile?['full_name'] ?? 'کاربر',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.snappDark,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _userProfile?['phone_number'] ?? '',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppTheme.snappGray,
-                            ),
-                          ),
-                        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        child: Column(
+          children: [
+            // Profile Header
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.snappPrimary,
+                            AppTheme.snappSecondary,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Menu Items
-                  _buildMenuItem(
-                    icon: Icons.edit,
-                    title: 'ویرایش اطلاعات',
-                    subtitle: 'تغییر نام و اطلاعات شخصی',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('این بخش به زودی فعال می‌شود'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.notifications,
-                    title: 'اعلان‌ها',
-                    subtitle: 'مدیریت اعلان‌های برنامه',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('این بخش به زودی فعال می‌شود'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.security,
-                    title: 'امنیت',
-                    subtitle: 'تنظیمات امنیتی حساب کاربری',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('این بخش به زودی فعال می‌شود'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.help,
-                    title: 'راهنما و پشتیبانی',
-                    subtitle: 'سوالات متداول و تماس با پشتیبانی',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('این بخش به زودی فعال می‌شود'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.feedback,
-                    title: 'بازخورد و پیشنهادات',
-                    subtitle: 'نظرات خود را با ما در میان بگذارید',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FeedbackScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.info,
-                    title: 'درباره برنامه',
-                    subtitle: 'نسخه 1.0.0',
-                    onTap: () {
-                      showAboutDialog(
-                        context: context,
-                        applicationName: 'ویستا نت',
-                        applicationVersion: '1.0.0',
-                        applicationIcon: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.snappPrimary,
-                                AppTheme.snappSecondary,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.phone_android,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Sign Out Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _signOut,
-                      icon: const Icon(Icons.logout),
-                      label: const Text(
-                        'خروج از حساب کاربری',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.snappDark,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      phone,
+                      style: TextStyle(fontSize: 16, color: AppTheme.snappGray),
+                    ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            // Menu Items
+            _buildMenuItem(
+              icon: Icons.edit,
+              title: 'ویرایش اطلاعات',
+              subtitle: 'تغییر نام و اطلاعات شخصی',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('این بخش به زودی فعال می‌شود')),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.notifications,
+              title: 'اعلان‌ها',
+              subtitle: 'مدیریت اعلان‌های برنامه',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('این بخش به زودی فعال می‌شود')),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.security,
+              title: 'امنیت',
+              subtitle: 'تنظیمات امنیتی حساب کاربری',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('این بخش به زودی فعال می‌شود')),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.help,
+              title: 'راهنما و پشتیبانی',
+              subtitle: 'سوالات متداول و تماس با پشتیبانی',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('این بخش به زودی فعال می‌شود')),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.feedback,
+              title: 'بازخورد و پیشنهادات',
+              subtitle: 'نظرات خود را با ما در میان بگذارید',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const FeedbackScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.info,
+              title: 'درباره برنامه',
+              subtitle: 'نسخه 1.0.0',
+              onTap: () {
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'ویستا نت',
+                  applicationVersion: '1.0.0',
+                  applicationIcon: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.snappPrimary,
+                          AppTheme.snappSecondary,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.phone_android,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Sign Out Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _signOut,
+                icon: const Icon(Icons.logout),
+                label: const Text(
+                  'خروج از حساب کاربری',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -318,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppTheme.snappPrimary.withOpacity(0.1),
+            color: AppTheme.snappPrimary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppTheme.snappPrimary),

@@ -1,243 +1,139 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import '../services/auth_service.dart';
-import '../config/app_theme.dart';
-import 'main_screen.dart';
+import '../../../../config/app_theme.dart';
+import '../providers/auth_provider.dart';
+import 'registration_screen.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
+class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
-  final String fullName;
-  final String? nationalId;
-  final DateTime? birthDate;
-  final bool isLogin;
 
-  const OtpVerificationScreen({
-    super.key,
-    required this.phoneNumber,
-    required this.fullName,
-    this.nationalId,
-    this.birthDate,
-    this.isLogin = false,
-  });
+  const OtpVerificationScreen({super.key, required this.phoneNumber});
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  ConsumerState<OtpVerificationScreen> createState() =>
+      _OtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final _authService = AuthService();
-  TextEditingController? _otpController;
-  bool _isLoading = false;
-  bool _isResending = false;
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
+  final TextEditingController _otpController = TextEditingController();
   int _resendTimer = 60;
   bool _canResend = false;
+  bool _isResending = false;
 
   @override
   void initState() {
     super.initState();
-    _otpController = TextEditingController();
-    _sendInitialCode();
     _startResendTimer();
   }
 
   @override
   void dispose() {
-    _otpController?.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   void _startResendTimer() {
     if (!mounted) return;
+    _resendTimer = 60;
+    _canResend = false;
 
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _resendTimer--;
-          if (_resendTimer <= 0) {
-            _canResend = true;
-          }
-        });
-        if (_resendTimer > 0 && mounted) {
-          _startResendTimer();
-        }
-      }
-    });
-  }
-
-  Future<void> _sendInitialCode() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final result = await _authService.sendVerificationCode(widget.phoneNumber);
-
-    if (mounted) {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
       setState(() {
-        _isLoading = false;
+        _resendTimer--;
+        if (_resendTimer <= 0) {
+          _canResend = true;
+        }
       });
-
-      if (!result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+      return _resendTimer > 0;
+    });
   }
 
   Future<void> _verifyCode() async {
-    // Check if controller is still valid and mounted
-    if (!mounted || _otpController == null) {
-      return;
-    }
+    if (_otpController.text.length != 5) return;
 
-    if (_otpController!.text.isEmpty) {
-      return;
-    }
+    ref.read(authProvider.notifier).clearError();
 
-    if (_otpController!.text.length != 5) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('لطفاً کد 5 رقمی را کامل وارد کنید'),
-            backgroundColor: Colors.red,
+    final result = await ref
+        .read(authProvider.notifier)
+        .verifyOtp(widget.phoneNumber, _otpController.text);
+
+    if (!mounted) return;
+
+    switch (result) {
+      case 'success':
+        // User logged in successfully - main.dart will handle navigation
+        // Pop back to let the auth state listener redirect
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        break;
+
+      case 'user_not_found':
+        // Navigate to registration screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                RegistrationScreen(phoneNumber: widget.phoneNumber),
           ),
         );
-      }
-      return;
-    }
+        break;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // First verify the code
-    final verifyResult = await _authService.verifyPhoneNumber(
-      widget.phoneNumber,
-      _otpController!.text,
-    );
-
-    if (verifyResult['success']) {
-      // Register or login the user
-      if (!widget.isLogin) {
-        // This is a new registration
-        final registerResult = await _authService.registerUser(
-          widget.phoneNumber,
-          widget.fullName,
-          nationalId: widget.nationalId,
-          birthDate: widget.birthDate,
-        );
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          if (registerResult['success']) {
-            // Navigate to home screen
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const MainScreen()),
-              (route) => false,
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(registerResult['message']),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } else {
-        // This is a login
-        // Fetch user profile and save session
-        final profile = await _authService.getUserProfileByPhone(
-          widget.phoneNumber,
-        );
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          if (profile != null) {
-            // Navigate to home screen
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const MainScreen()),
-              (route) => false,
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('خطا در بارگذاری اطلاعات کاربر'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
-    } else {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
+      case 'error':
+      default:
+        final error = ref.read(authProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(verifyResult['message']),
+            content: Text(error ?? 'کد تایید نامعتبر است'),
             backgroundColor: Colors.red,
           ),
         );
-      }
+        break;
     }
   }
 
   Future<void> _resendCode() async {
-    if (!_canResend || !mounted) return;
+    if (!_canResend) return;
 
     setState(() {
       _isResending = true;
-      _canResend = false;
-      _resendTimer = 60;
     });
 
-    final result = await _authService.sendVerificationCode(widget.phoneNumber);
+    final success = await ref
+        .read(authProvider.notifier)
+        .sendOtp(widget.phoneNumber);
 
     if (mounted) {
       setState(() {
         _isResending = false;
       });
 
-      if (result['success']) {
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
+          const SnackBar(
+            content: Text('کد تایید مجدداً ارسال شد'),
             backgroundColor: Colors.green,
           ),
         );
         _startResendTimer();
       } else {
+        final error = ref.read(authProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
+            content: Text(error ?? 'خطا در ارسال مجدد'),
             backgroundColor: Colors.red,
           ),
         );
-        setState(() {
-          _canResend = true;
-        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -247,12 +143,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.isLogin ? 'ورود' : 'ثبت‌نام',
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+        title: const Text(
+          'تایید شماره موبایل',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -277,7 +170,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.snappPrimary.withOpacity(0.3),
+                        color: AppTheme.snappPrimary.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -319,7 +212,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   child: PinCodeTextField(
                     appContext: context,
                     length: 5,
-                    controller: _otpController!,
+                    controller: _otpController,
                     keyboardType: TextInputType.number,
                     animationType: AnimationType.fade,
                     pinTheme: PinTheme(
@@ -329,7 +222,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       fieldWidth: 55,
                       activeFillColor: Colors.white,
                       inactiveFillColor: AppTheme.snappLightGray,
-                      selectedFillColor: AppTheme.snappPrimary.withOpacity(0.1),
+                      selectedFillColor: AppTheme.snappPrimary.withValues(
+                        alpha: 0.1,
+                      ),
                       activeColor: AppTheme.snappPrimary,
                       inactiveColor: AppTheme.snappGray,
                       selectedColor: AppTheme.snappPrimary,
@@ -340,9 +235,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                     onCompleted: (value) {
-                      if (mounted && _otpController != null) {
-                        _verifyCode();
-                      }
+                      if (mounted && !isLoading) _verifyCode();
                     },
                     onChanged: (value) {},
                   ),
@@ -351,12 +244,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                 // Verify Button
                 ElevatedButton(
-                  onPressed: _isLoading
+                  onPressed: isLoading
                       ? null
                       : () {
-                          if (mounted && _otpController != null) {
-                            _verifyCode();
-                          }
+                          _verifyCode();
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.snappPrimary,
@@ -366,9 +257,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 4,
-                    shadowColor: AppTheme.snappPrimary.withOpacity(0.4),
+                    shadowColor: AppTheme.snappPrimary.withValues(alpha: 0.4),
                   ),
-                  child: _isLoading
+                  child: isLoading
                       ? const SizedBox(
                           height: 24,
                           width: 24,
@@ -419,7 +310,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           : Text(
                               _canResend
                                   ? 'ارسال مجدد'
-                                  : 'ارسال مجدد ($_resendTimer ثانیه)',
+                                  : 'ارسال مجدد ($_resendTimer)',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: _canResend

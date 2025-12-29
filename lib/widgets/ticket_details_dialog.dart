@@ -58,7 +58,7 @@ class TicketDetailsDialog extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(ticket.status).withOpacity(0.2),
+                      color: _getStatusColor(ticket.status).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -239,7 +239,7 @@ class TicketDetailsDialog extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: (valueColor ?? AppTheme.snappDark).withOpacity(0.05),
+            color: (valueColor ?? AppTheme.snappDark).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(

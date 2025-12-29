@@ -25,7 +25,7 @@ class SpecialServicesScreen extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Builder(
@@ -51,7 +51,7 @@ class SpecialServicesScreen extends StatelessWidget {
             Icon(
               Icons.star,
               size: 80,
-              color: AppTheme.snappPrimary.withOpacity(0.5),
+              color: AppTheme.snappPrimary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
             Text(

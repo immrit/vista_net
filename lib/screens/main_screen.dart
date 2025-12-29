@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import 'home_screen.dart';
 import 'dynamic_services_screen.dart';
-import 'tickets_screen.dart';
+import '../features/service_requests/presentation/screens/my_tickets_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 
@@ -19,7 +19,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const ProfileScreen(),
-    const TicketsScreen(),
+    const MyTicketsScreen(),
     const DynamicServicesScreen(),
     const NotificationsScreen(),
     const HomeScreen(),

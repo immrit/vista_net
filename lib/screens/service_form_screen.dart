@@ -7,6 +7,8 @@ import '../models/service_field_model.dart';
 import '../services/service_api.dart';
 import '../services/ticket_service.dart';
 import '../services/arvan_upload_service.dart';
+import '../services/service_payment_service.dart';
+import '../widgets/service_payment_widget.dart';
 
 class ServiceFormScreen extends StatefulWidget {
   final Service service;
@@ -122,6 +124,20 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Payment widget
+                  ServicePaymentWidget(
+                    service: widget.service,
+                    showAsButton: false,
+                    onPaymentSuccess: () {
+                      setState(() {
+                        // Refresh the UI to show payment status
+                      });
+                    },
+                    onPaymentError: () {
+                      // Handle payment error
+                    },
                   ),
                 ],
               ],
@@ -727,6 +743,20 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
 
     _formKey.currentState!.save();
 
+    // Check if service requires payment
+    if (widget.service.isPaidService) {
+      final paymentService = ServicePaymentService();
+      final isPaid = paymentService.isServicePaid(widget.service.id);
+
+      if (!isPaid) {
+        // Show payment confirmation dialog
+        final paymentConfirmed = await _showPaymentConfirmation();
+        if (paymentConfirmed != true) {
+          return; // User cancelled payment
+        }
+      }
+    }
+
     try {
       setState(() {
         _isSubmitting = true;
@@ -785,6 +815,22 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
         });
       }
     }
+  }
+
+  Future<bool?> _showPaymentConfirmation() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ServicePaymentConfirmationDialog(
+        service: widget.service,
+        onPaymentSuccess: () {
+          // Payment successful, can proceed with form submission
+        },
+        onPaymentError: () {
+          // Payment failed, show error
+        },
+      ),
+    );
   }
 
   @override

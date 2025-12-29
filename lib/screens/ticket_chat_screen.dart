@@ -143,7 +143,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
             Text(
               _getStatusText(widget.ticket.status.name),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -192,7 +192,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -205,7 +205,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
             decoration: BoxDecoration(
               color: _getStatusColor(
                 widget.ticket.status.name,
-              ).withOpacity(0.1),
+              ).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -265,7 +265,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
             Icon(
               Icons.chat_bubble_outline_rounded,
               size: 64,
-              color: AppTheme.snappGray.withOpacity(0.5),
+              color: AppTheme.snappGray.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -278,7 +278,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
             Text(
               'اولین پیام خود را ارسال کنید',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.snappGray.withOpacity(0.7),
+                color: AppTheme.snappGray.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -311,7 +311,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.snappPrimary.withOpacity(0.1),
+                color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
@@ -360,7 +360,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                         _formatTime(message.timestamp),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: message.isFromUser
-                              ? Colors.white.withOpacity(0.7)
+                              ? Colors.white.withValues(alpha: 0.7)
                               : AppTheme.snappGray,
                           fontSize: 10,
                         ),
@@ -370,7 +370,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                         Icon(
                           _getMessageStatusIcon(message),
                           size: 12,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ],
                     ],
@@ -385,7 +385,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.snappPrimary.withOpacity(0.1),
+                color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
@@ -407,7 +407,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -438,7 +438,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                       ? 'در حال ارسال...'
                       : 'پیام خود را بنویسید...',
                   hintStyle: TextStyle(
-                    color: AppTheme.snappGray.withOpacity(0.7),
+                    color: AppTheme.snappGray.withValues(alpha: 0.7),
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(

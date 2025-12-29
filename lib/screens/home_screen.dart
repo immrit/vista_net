@@ -3,6 +3,7 @@ import '../config/app_theme.dart';
 import '../services/service_api.dart';
 import '../services/popular_services_api.dart';
 import '../models/service_model.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/hamburger_menu.dart';
 import 'dynamic_services_screen.dart';
 
@@ -79,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToSupportChat() {
-    // Navigate to support chat screen
+    // Navigate to tickets/support screen
     Navigator.pushNamed(context, '/support-chat');
   }
 
@@ -97,9 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.snappPrimary,
         elevation: 0,
-        title: const Text(
-          'ویستا نت',
-          style: TextStyle(
+        title: const AppLogo(
+          showTitle: true,
+          size: 32,
+          textStyle: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -107,10 +109,26 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: true,
         actions: [
+          // Service Payments button
+          IconButton(
+            icon: const Icon(Icons.payment, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/service-payments');
+            },
+            tooltip: 'پرداخت سرویس‌ها',
+          ),
+          // Billing button
+          IconButton(
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/billing');
+            },
+            tooltip: 'مدیریت خریدها',
+          ),
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Builder(
@@ -172,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.snappPrimary.withOpacity(0.3),
+            color: AppTheme.snappPrimary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -181,16 +199,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.home_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const AppLogo(size: 48),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -208,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'چه خدمتی نیاز دارید؟',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -226,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -238,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: InputDecoration(
           hintText: 'دنبال چی می‌گردی؟',
           hintStyle: TextStyle(
-            color: AppTheme.snappGray.withOpacity(0.7),
+            color: AppTheme.snappGray.withValues(alpha: 0.7),
             fontSize: 16,
           ),
           prefixIcon: Icon(
@@ -277,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -295,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -320,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'سوالات خود را از پشتیبان بپرسید',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -385,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -435,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -446,11 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           onTap: () {
             // Navigate to service details
-            Navigator.pushNamed(
-              context,
-              '/service-form',
-              arguments: service.id,
-            );
+            Navigator.pushNamed(context, '/service-form', arguments: service);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -462,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(

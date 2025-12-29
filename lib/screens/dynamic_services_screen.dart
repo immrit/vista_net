@@ -3,8 +3,9 @@ import '../models/service_category_model.dart';
 import '../models/service_model.dart';
 import '../services/service_api.dart';
 import '../widgets/hamburger_menu.dart';
+import '../widgets/app_logo_title.dart';
 import '../config/app_theme.dart';
-import 'service_form_screen.dart';
+import '../features/service_requests/presentation/screens/new_request_screen.dart';
 
 class DynamicServicesScreen extends StatefulWidget {
   const DynamicServicesScreen({super.key});
@@ -94,20 +95,13 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.snappPrimary,
         elevation: 0,
-        title: const Text(
-          'خدمات',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: const AppLogoTitle(title: 'خدمات'),
         centerTitle: true,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -122,7 +116,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Builder(
@@ -151,7 +145,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -163,7 +157,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
               decoration: InputDecoration(
                 hintText: 'دنبال چه چیزی میگردی؟',
                 hintStyle: TextStyle(
-                  color: AppTheme.snappGray.withOpacity(0.7),
+                  color: AppTheme.snappGray.withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
                 prefixIcon: Icon(
@@ -225,7 +219,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.snappPrimary.withOpacity(0.1),
+              color: AppTheme.snappPrimary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: CircularProgressIndicator(
@@ -254,7 +248,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.snappGray.withOpacity(0.1),
+                color: AppTheme.snappGray.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
@@ -290,10 +284,10 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.snappPrimary.withOpacity(0.1),
+            color: AppTheme.snappPrimary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppTheme.snappPrimary.withOpacity(0.2),
+              color: AppTheme.snappPrimary.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -355,7 +349,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.snappGray.withOpacity(0.1),
+                color: AppTheme.snappGray.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
@@ -408,7 +402,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -425,8 +419,8 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppTheme.snappPrimary.withOpacity(0.1),
-                  AppTheme.snappSecondary.withOpacity(0.1),
+                  AppTheme.snappPrimary.withValues(alpha: 0.1),
+                  AppTheme.snappSecondary.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: const BorderRadius.only(
@@ -439,7 +433,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.snappPrimary.withOpacity(0.2),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -500,7 +494,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 ? Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.snappGray.withOpacity(0.1),
+                      color: AppTheme.snappGray.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -554,7 +548,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -574,7 +568,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -622,10 +616,10 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Colors.orange.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -655,7 +649,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -674,7 +668,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -720,10 +714,10 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.orange.withOpacity(0.3),
+                              color: Colors.orange.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -744,7 +738,7 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.snappPrimary.withOpacity(0.1),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -788,7 +782,10 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ServiceFormScreen(service: service),
+        builder: (context) => NewRequestScreen(
+          serviceId: service.id,
+          serviceTitle: service.title,
+        ),
       ),
     );
   }

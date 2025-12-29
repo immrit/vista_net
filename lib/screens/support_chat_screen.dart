@@ -155,7 +155,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                 Text(
                   'آنلاین',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -310,7 +310,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                     _formatTime(message.timestamp),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: message.isUser
-                          ? Colors.white.withOpacity(0.7)
+                          ? Colors.white.withValues(alpha: 0.7)
                           : AppTheme.snappGray,
                       fontSize: 10,
                     ),
@@ -325,7 +325,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppTheme.snappPrimary.withOpacity(0.1),
+                color: AppTheme.snappPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
@@ -392,7 +392,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: AppTheme.snappGray.withOpacity(0.3 + (value * 0.7)),
+            color: AppTheme.snappGray.withValues(alpha: 0.3 + (value * 0.7)),
             shape: BoxShape.circle,
           ),
         );
@@ -412,7 +412,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -438,7 +438,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                 decoration: InputDecoration(
                   hintText: 'پیام خود را بنویسید...',
                   hintStyle: TextStyle(
-                    color: AppTheme.snappGray.withOpacity(0.7),
+                    color: AppTheme.snappGray.withValues(alpha: 0.7),
                   ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(

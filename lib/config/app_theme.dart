@@ -48,7 +48,7 @@ class AppTheme {
           backgroundColor: snappPrimary,
           foregroundColor: Colors.white,
           elevation: 2,
-          shadowColor: snappPrimary.withOpacity(0.3),
+          shadowColor: snappPrimary.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -78,11 +78,11 @@ class AppTheme {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: snappGray.withOpacity(0.3)),
+          borderSide: BorderSide(color: snappGray.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: snappGray.withOpacity(0.3)),
+          borderSide: BorderSide(color: snappGray.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -99,7 +99,7 @@ class AppTheme {
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
-        shadowColor: snappGray.withOpacity(0.1),
+        shadowColor: snappGray.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: Colors.white,
       ),
