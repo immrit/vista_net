@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../models/service_model.dart';
@@ -56,29 +57,33 @@ class TicketRepository {
     required String userId,
     required String serviceId,
     required String title,
+    required String status,
+    required String statusDetail,
     required String description,
-    required List<String> fileUrls,
-    Map<String, dynamic>? formData,
+    required Map<String, dynamic> dynamicFields,
+    List<String>? fileUrls,
   }) async {
     try {
-      // Prepare parameters for RPC (explicitly Map<String, dynamic>)
-      final Map<String, dynamic> params = {
+      // لاگ کردن پارامترها برای دیباگ
+      debugPrint(
+        'Sending RPC Params: userId=$userId, desc=$description, fields=$dynamicFields',
+      );
+
+      final params = {
         'p_user_id': userId,
         'p_service_id': serviceId,
         'p_title': title,
+        'p_status': status,
+        'p_status_detail': statusDetail,
         'p_description': description,
-        'p_status': 'open',
+        'p_dynamic_fields': dynamicFields,
       };
 
-      if (formData != null) {
-        params['p_dynamic_fields'] = formData;
-      }
-
-      // Call RPC
+      // فراخوانی RPC
       final ticketId = await _supabase.rpc('create_ticket_rpc', params: params);
 
       // Handle File Attachments
-      if (fileUrls.isNotEmpty) {
+      if (fileUrls != null && fileUrls.isNotEmpty) {
         for (final url in fileUrls) {
           try {
             await _supabase.rpc(
@@ -92,14 +97,15 @@ class TicketRepository {
               },
             );
           } catch (e) {
-            // Ignore error or log
+            debugPrint('Error adding file attachment: $e');
           }
         }
       }
 
       return ticketId.toString();
     } catch (e) {
-      throw Exception('Error submitting ticket: $e');
+      debugPrint('RPC Error: $e');
+      throw Exception('خطا در ثبت تیکت: $e');
     }
   }
 

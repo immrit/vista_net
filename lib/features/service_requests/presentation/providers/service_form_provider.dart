@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../models/service_model.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/ticket_repository.dart';
@@ -97,7 +96,6 @@ class ServiceFormNotifier extends StateNotifier<ServiceFormState> {
     if (state.service == null) return false;
 
     // 1. Get userId from AuthProvider (Custom Auth)
-    // 1. Get userId from AuthProvider (Custom Auth)
     final authState = _ref.read(authProvider);
     if (!authState.isLoggedIn || authState.userId == null) {
       state = state.copyWith(error: 'User ID is null. Please log in again.');
@@ -129,9 +127,11 @@ class ServiceFormNotifier extends StateNotifier<ServiceFormState> {
         userId: userId,
         serviceId: state.service!.id,
         title: state.formData['title'] ?? 'درخواست ${state.service!.title}',
+        status: 'open',
+        statusDetail: 'submitted',
         description: state.formData['description'] ?? '',
+        dynamicFields: state.formData,
         fileUrls: uploadedUrls,
-        formData: state.formData,
       );
 
       state = state.copyWith(isSubmitting: false, uploadProgress: 1.0);

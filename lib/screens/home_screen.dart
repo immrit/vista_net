@@ -34,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
         limit: 6,
       );
 
+      if (!mounted) return; // Check before setState
+
       if (popularServices.isNotEmpty) {
         setState(() {
           _popularServices = popularServices;
@@ -44,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // اگر خدمات پرطرفدار تعریف نشده، از تمام خدمات انتخاب می‌کنیم
       final allServices = await _serviceApi.getAllActiveServices();
+
+      if (!mounted) return; // Check before setState
+
       setState(() {
         _popularServices = allServices.take(6).toList();
         _isLoading = false;
@@ -52,19 +57,22 @@ class _HomeScreenState extends State<HomeScreen> {
       // در صورت خطا، از تمام خدمات استفاده می‌کنیم
       try {
         final allServices = await _serviceApi.getAllActiveServices();
+
+        if (!mounted) return; // Check before setState
+
         setState(() {
           _popularServices = allServices.take(6).toList();
           _isLoading = false;
         });
       } catch (fallbackError) {
+        if (!mounted) return; // Check before setState
+
         setState(() {
           _isLoading = false;
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطا در بارگذاری خدمات: $fallbackError')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در بارگذاری خدمات: $fallbackError')),
+        );
       }
     }
   }
