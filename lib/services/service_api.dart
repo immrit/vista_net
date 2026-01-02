@@ -54,7 +54,7 @@ class ServiceApi {
           .from('service_fields')
           .select()
           .eq('service_id', serviceId)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
 
       final service = Service.fromJson(serviceResponse);
       final fields = (fieldsResponse as List)
@@ -75,7 +75,7 @@ class ServiceApi {
           .select()
           .eq('is_active', true)
           .or('title.ilike.%$query%,description.ilike.%$query%')
-          .order('sort_order');
+          .order('sort_order', ascending: true);
 
       return (response as List).map((json) => Service.fromJson(json)).toList();
     } catch (e) {
@@ -90,7 +90,7 @@ class ServiceApi {
           .from('services')
           .select()
           .eq('is_active', true)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
 
       return (response as List).map((json) => Service.fromJson(json)).toList();
     } catch (e) {
@@ -115,9 +115,3 @@ class ServiceApi {
     }
   }
 }
-
-
-
-
-
-

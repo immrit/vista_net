@@ -6,6 +6,7 @@ class Service {
   final String title;
   final String description;
   final String icon;
+  final String? imageUrl; // New field
   final bool isActive;
 
   // تنظیمات خاص هر خدمت
@@ -44,6 +45,7 @@ class Service {
     required this.title,
     required this.description,
     required this.icon,
+    this.imageUrl, // New param
     required this.isActive,
     required this.requiresDocuments,
     required this.requiresNationalId,
@@ -73,6 +75,7 @@ class Service {
       title: json['title'],
       description: json['description'],
       icon: json['icon'] ?? 'description',
+      imageUrl: json['image_url'], // Map from json
       isActive: json['is_active'] ?? true,
       requiresDocuments: json['requires_documents'] ?? false,
       requiresNationalId: json['requires_national_id'] ?? false,
@@ -106,6 +109,7 @@ class Service {
       'title': title,
       'description': description,
       'icon': icon,
+      'image_url': imageUrl, // To json
       'is_active': isActive,
       'requires_documents': requiresDocuments,
       'requires_national_id': requiresNationalId,
@@ -134,6 +138,7 @@ class Service {
     String? title,
     String? description,
     String? icon,
+    String? imageUrl,
     bool? isActive,
     bool? requiresDocuments,
     bool? requiresNationalId,
@@ -161,6 +166,7 @@ class Service {
       title: title ?? this.title,
       description: description ?? this.description,
       icon: icon ?? this.icon,
+      imageUrl: imageUrl ?? this.imageUrl,
       isActive: isActive ?? this.isActive,
       requiresDocuments: requiresDocuments ?? this.requiresDocuments,
       requiresNationalId: requiresNationalId ?? this.requiresNationalId,

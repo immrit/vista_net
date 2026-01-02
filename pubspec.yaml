@@ -40,6 +40,7 @@ dependencies:
   
   # HTTP requests
   http: ^1.2.2
+  minio: ^3.5.8
   
   # State management
   flutter_riverpod: ^2.6.1
@@ -63,8 +64,13 @@ dependencies:
   audioplayers: ^6.5.1
   mime: ^2.0.0
   path_provider: ^2.1.5
+  path: ^1.9.0
   permission_handler: ^12.0.1
   shamsi_date: ^1.1.1
+  
+  # Hive for offline session storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   # file_picker: ^6.1.1
   
   # Cafe Bazaar In-App Billing (temporary mock implementation)
@@ -99,6 +105,9 @@ flutter:
     - lib/assets/images/logo.png
     - lib/assets/images/logo2.png
     - lib/assets/images/logo_transparent.png
+    - lib/assets/images/logo_typography.png
+    - lib/assets/images/login_mobile.png
+    - lib/assets/images/otp_illustrator.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

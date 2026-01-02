@@ -23,7 +23,7 @@ class TicketRepository {
         .from('service_fields')
         .select()
         .eq('service_id', serviceId)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
 
     final service = Service.fromJson(serviceResponse);
     final fields = (fieldsResponse as List)

@@ -1,21 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/supabase_config.dart';
 import 'package:flutter/foundation.dart';
+import '../config/supabase_config.dart';
+import '../models/session_model.dart';
+import 'session_storage_service.dart';
 
 class AuthService {
   static final SupabaseClient _supabase = SupabaseConfig.client;
 
-  // Session management keys
-  static const String _isLoggedInKey = 'is_logged_in';
-  static const String _userIdKey = 'user_id';
-  static const String _phoneNumberKey = 'phone_number';
-  static const String _fullNameKey = 'full_name';
-
-  // Format phone number to international format (+98)
-  // Converts 09xxxxxxxxx to +98xxxxxxxxx
-  // Format phone number to international format (+98)
-  // Format phone number to international format (+98)
   // Format phone number to international format (+98)
   String _formatPhoneNumber(String phone) {
     String digits = phone.replaceAll(RegExp(r'\D'), '');
@@ -32,8 +24,8 @@ class AuthService {
   // Send verification code to phone number using Edge Function
   Future<Map<String, dynamic>> sendVerificationCode(String phoneNumber) async {
     final formattedPhone = _formatPhoneNumber(phoneNumber);
-    print(
-      'Sending Code - Original: $phoneNumber -> Formatted: $formattedPhone',
+    debugPrint(
+      '[Auth] Sending Code - Original: $phoneNumber -> Formatted: $formattedPhone',
     );
 
     Future<Map<String, dynamic>> invokeFunction(String name) async {
@@ -56,19 +48,68 @@ class AuthService {
     try {
       return await invokeFunction('OTP');
     } catch (e) {
-      print('Error in sendVerificationCode: $e');
+      debugPrint('[Auth] Error in sendVerificationCode: $e');
+
+      // If JWT expired, clear stale session and retry
+      if (e.toString().contains('JWT') || e.toString().contains('401')) {
+        debugPrint('[Auth] 🔄 JWT expired, clearing session and retrying...');
+        await _supabase.auth.signOut();
+        await SessionStorageService.clearSession();
+
+        // Retry after clearing session
+        try {
+          return await invokeFunction('OTP');
+        } catch (retryError) {
+          debugPrint('[Auth] Retry failed: $retryError');
+        }
+      }
+
       return {'success': false, 'message': 'خطا در ارسال کد تایید'};
     }
   }
 
-  // Recover session on app start
+  // Recover session on app start - UPDATED TO USE HIVE
   Future<Map<String, dynamic>?> recoverSession() async {
     try {
+      // First try to get from Hive (offline-first)
+      final storedSession = await SessionStorageService.getSession();
+      if (storedSession != null && storedSession.isLoggedIn) {
+        debugPrint('[Auth] 🔄 Found stored session: ${storedSession.userId}');
+
+        // Validate with Supabase if online
+        final user = _supabase.auth.currentUser;
+        if (user != null) {
+          // Try fetching fresh profile
+          final profile = await _supabase
+              .from('profiles')
+              .select('id, phone_number, full_name, is_verified')
+              .eq('id', user.id)
+              .maybeSingle();
+
+          if (profile != null) {
+            // Update stored session with fresh data
+            await _saveUserSession(
+              profile['id'],
+              profile['phone_number'],
+              profile['full_name'] ?? '',
+            );
+            return profile;
+          }
+        }
+
+        // Return stored session as fallback (offline mode)
+        return {
+          'id': storedSession.userId,
+          'phone_number': storedSession.phoneNumber,
+          'full_name': storedSession.fullName,
+        };
+      }
+
+      // No stored session, check Supabase directly
       final user = _supabase.auth.currentUser;
       if (user == null) return null;
-      print('🔄 Recovering session for user: ${user.id}');
 
-      // Try fetching profile by ID first (Most reliable)
+      debugPrint('[Auth] 🔄 Recovering session for user: ${user.id}');
       final profileById = await _supabase
           .from('profiles')
           .select('id, phone_number, full_name, is_verified')
@@ -76,7 +117,6 @@ class AuthService {
           .maybeSingle();
 
       if (profileById != null) {
-        // Update local session just in case
         await _saveUserSession(
           profileById['id'],
           profileById['phone_number'],
@@ -85,28 +125,34 @@ class AuthService {
         return profileById;
       }
 
-      // Fallback: Try by phone if ID lookup failed
       return await getUserProfileByPhone(
         user.userMetadata?['phone_number'] ??
             _formatPhoneNumber(user.phone ?? ''),
       );
     } catch (e) {
-      print('Error recovering session: $e');
+      debugPrint('[Auth] Error recovering session: $e');
+      // Try offline session as last resort
+      final storedSession = await SessionStorageService.getSession();
+      if (storedSession != null && storedSession.isLoggedIn) {
+        return {
+          'id': storedSession.userId,
+          'phone_number': storedSession.phoneNumber,
+          'full_name': storedSession.fullName,
+        };
+      }
       return null;
     }
   }
 
-  // 2. UPDATED verifyPhoneNumber
-  // 2. UPDATED verifyPhoneNumber - Completes the loop!
+  // Verify phone number with OTP
   Future<Map<String, dynamic>> verifyPhoneNumber(
     String phoneNumber,
     String code,
   ) async {
     final formattedPhone = _formatPhoneNumber(phoneNumber);
-    print('🔐 Verifying OTP for: $formattedPhone');
+    debugPrint('[Auth] 🔐 Verifying OTP for: $formattedPhone');
 
     try {
-      // Call Edge Function
       final response = await _supabase.functions.invoke(
         'verify-otp',
         body: {'phone': formattedPhone, 'code': code},
@@ -115,15 +161,12 @@ class AuthService {
       final data = response.data;
 
       if (data != null && data['success'] == true && data['session'] != null) {
-        // A. Set Session (Login)
         final session = data['session'];
         await _supabase.auth.setSession(session['refresh_token']);
-        print('✅ Session set successfully');
+        debugPrint('[Auth] ✅ Session set successfully');
 
-        // B. Update Profile immediately (The Missing Link)
         await _completeRegistrationProfileIfNeeded();
 
-        // C. Refresh local user data
         final user = _supabase.auth.currentUser;
         if (user != null) {
           final profile = await getUserProfileByPhone(formattedPhone);
@@ -144,12 +187,12 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('❌ Error verifying OTP: $e');
+      debugPrint('[Auth] ❌ Error verifying OTP: $e');
       return {'success': false, 'message': 'خطا در تایید شماره موبایل'};
     }
   }
 
-  // 3. Helper to create/update profile
+  // Helper to create/update profile
   Future<void> _completeRegistrationProfileIfNeeded() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -159,7 +202,7 @@ class AuthService {
       if (pendingName != null) {
         final user = _supabase.auth.currentUser;
         if (user != null) {
-          print('👤 Creating profile for user: ${user.id} Name: $pendingName');
+          debugPrint('[Auth] 👤 Creating profile for user: ${user.id}');
 
           final phone =
               user.userMetadata?['phone_number'] ??
@@ -170,23 +213,18 @@ class AuthService {
             'full_name': pendingName,
             'national_id': pendingNationalId,
             'phone_number': phone,
-            'is_verified': true, // Auto-verify since they passed OTP
+            'is_verified': true,
             'updated_at': DateTime.now().toIso8601String(),
           });
 
-          print('✨ Profile created successfully!');
+          debugPrint('[Auth] ✨ Profile created successfully!');
 
-          // Cleanup
           await prefs.remove('temp_reg_fullname');
           await prefs.remove('temp_reg_national_id');
         }
-      } else {
-        print(
-          '⚠️ No pending registration data found. This might be a Login, not Registration.',
-        );
       }
     } catch (e) {
-      print('❌ Failed to update profile: $e');
+      debugPrint('[Auth] ❌ Failed to update profile: $e');
     }
   }
 
@@ -202,13 +240,12 @@ class AuthService {
 
       return result != null;
     } catch (e) {
-      print('Error checking user existence: $e');
+      debugPrint('[Auth] Error checking user existence: $e');
       return false;
     }
   }
 
-  // 1. REPLACED registerUser
-  // 1. REPLACED registerUser - Saves data first!
+  // Register user
   Future<Map<String, dynamic>> registerUser(
     String phoneNumber,
     String fullName, {
@@ -216,81 +253,71 @@ class AuthService {
     DateTime? birthDate,
   }) async {
     try {
-      print('📝 Starting Registration Flow for $phoneNumber');
+      debugPrint('[Auth] 📝 Starting Registration Flow for $phoneNumber');
 
-      // A. Save details temporarily (CRITICAL STEP)
+      // Save details temporarily
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('temp_reg_fullname', fullName);
       if (nationalId != null) {
         await prefs.setString('temp_reg_national_id', nationalId);
       }
-      // Force save to disk
       await prefs.reload();
-      print('💾 Temp data saved: $fullName');
+      debugPrint('[Auth] 💾 Temp data saved: $fullName');
 
-      // B. Standardize Phone
       final formattedPhone = _formatPhoneNumber(phoneNumber);
-
-      // C. Send OTP
       return await sendVerificationCode(formattedPhone);
     } catch (e) {
-      print('❌ Error in registerUser: $e');
+      debugPrint('[Auth] ❌ Error in registerUser: $e');
       return {'success': false, 'message': 'خطا در شروع فرآیند ثبت‌نام'};
     }
   }
 
-  // Get current user
+  // Get current user - UPDATED TO USE HIVE
   Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
-
-      if (!isLoggedIn) {
+      final session = await SessionStorageService.getSession();
+      if (session == null || !session.isLoggedIn) {
         return null;
       }
 
-      final userId = prefs.getString(_userIdKey);
-      final phoneNumber = prefs.getString(_phoneNumberKey);
-      final fullName = prefs.getString(_fullNameKey);
-
-      if (userId != null && phoneNumber != null && fullName != null) {
-        return {
-          'id': userId,
-          'phone_number': phoneNumber,
-          'full_name': fullName,
-        };
-      }
-
-      return null;
+      return {
+        'id': session.userId,
+        'phone_number': session.phoneNumber,
+        'full_name': session.fullName,
+      };
     } catch (e) {
-      print('Error getting current user: $e');
+      debugPrint('[Auth] Error getting current user: $e');
       return null;
     }
   }
 
-  // Check if user is authenticated
+  // Check if user is authenticated - UPDATED TO USE HIVE
   Future<bool> isAuthenticated() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_isLoggedInKey) ?? false;
+      final session = await SessionStorageService.getSession();
+      return session?.isLoggedIn ?? false;
     } catch (e) {
-      print('Error checking authentication: $e');
+      debugPrint('[Auth] Error checking authentication: $e');
       return false;
     }
   }
 
-  // Sign out
+  // Sign out - UPDATED TO CLEAR HIVE
   Future<void> signOut() async {
     try {
-      // 1. Clear Supabase Session (Critical)
+      // 1. Clear Supabase Session
       await _supabase.auth.signOut();
 
-      // 2. Clear Local Preferences
+      // 2. Clear Hive Session
+      await SessionStorageService.clearSession();
+
+      // 3. Clear SharedPreferences (for temp data)
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      print('User signed out completely');
+
+      debugPrint('[Auth] ✅ User signed out completely');
     } catch (e) {
-      print('Error signing out: $e');
+      debugPrint('[Auth] Error signing out: $e');
     }
   }
 
@@ -299,7 +326,7 @@ class AuthService {
     try {
       return await getCurrentUser();
     } catch (e) {
-      print('Error getting user profile: $e');
+      debugPrint('[Auth] Error getting user profile: $e');
       return null;
     }
   }
@@ -314,11 +341,10 @@ class AuthService {
           .from('profiles')
           .select('id, phone_number, full_name, is_verified')
           .eq('phone_number', formattedPhone)
-          .maybeSingle(); // Changed single() to maybeSingle()
+          .maybeSingle();
 
       if (result == null) return null;
 
-      // Save session
       await _saveUserSession(
         result['id'],
         result['phone_number'],
@@ -326,26 +352,31 @@ class AuthService {
       );
       return result;
     } catch (e) {
-      print('Error getting user profile by phone: $e');
+      debugPrint('[Auth] Error getting user profile by phone: $e');
       return null;
     }
   }
 
-  // Save user session to SharedPreferences
+  // Save user session to Hive - UPDATED
   Future<void> _saveUserSession(
     String userId,
     String phoneNumber,
     String fullName,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_isLoggedInKey, true);
-      await prefs.setString(_userIdKey, userId);
-      await prefs.setString(_phoneNumberKey, phoneNumber);
-      await prefs.setString(_fullNameKey, fullName);
-      print('User session saved successfully');
+      final session = UserSession(
+        id: 'main_session',
+        userId: userId,
+        phoneNumber: phoneNumber,
+        fullName: fullName,
+        isLoggedIn: true,
+        lastLoginAt: DateTime.now(),
+      );
+
+      await SessionStorageService.saveSession(session);
+      debugPrint('[Auth] ✅ Session saved to Hive');
     } catch (e) {
-      print('Error saving user session: $e');
+      debugPrint('[Auth] Error saving user session: $e');
     }
   }
 }

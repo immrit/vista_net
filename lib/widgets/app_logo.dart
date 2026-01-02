@@ -5,7 +5,7 @@ import '../config/app_assets.dart';
 class AppLogo extends StatelessWidget {
   const AppLogo({
     super.key,
-    this.size = 36,
+    this.size = 45,
     this.showTitle = false,
     this.spacing = 8,
     this.textStyle,
@@ -22,16 +22,45 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseStyle =
-        Theme.of(context).appBarTheme.titleTextStyle ??
-        Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.onPrimary,
-        );
-    final resolvedTextStyle = textStyle == null
-        ? baseStyle
-        : baseStyle?.merge(textStyle) ?? textStyle;
+    // If showTitle is true, we use the integrated Typography Logo
+    if (showTitle) {
+      Widget typographyLogo = Image.asset(
+        AppAssets.logoTypography,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.image_not_supported_rounded,
+                size: size,
+                color: Colors.grey,
+              ),
+              const SizedBox(width: 8),
+              const Text('VistaNet'),
+            ],
+          );
+        },
+      );
 
+      // Apply BlendMode.multiply to hide white background
+      // This makes white pixels transparent when drawn over other colors
+      typographyLogo = ColorFiltered(
+        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.multiply),
+        child: typographyLogo,
+      );
+
+      if (color != null) {
+        typographyLogo = ColorFiltered(
+          colorFilter: ColorFilter.mode(color!, BlendMode.srcIn),
+          child: typographyLogo,
+        );
+      }
+      return typographyLogo;
+    }
+
+    // Otherwise, show just the Icon
     Widget logoImage = Image.asset(
       useTransparent ? AppAssets.logoTransparent : AppAssets.logo,
       width: size,
@@ -41,7 +70,7 @@ class AppLogo extends StatelessWidget {
         return Icon(
           Icons.image_not_supported_rounded,
           size: size,
-          color: Colors.grey,
+          color: Colors.transparent,
         );
       },
     );
@@ -53,22 +82,6 @@ class AppLogo extends StatelessWidget {
       );
     }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        logoImage,
-        if (showTitle) ...[
-          SizedBox(width: spacing),
-          Flexible(
-            child: Text(
-              'ویستا نت',
-              style: resolvedTextStyle,
-              textDirection: TextDirection.rtl,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ],
-    );
+    return logoImage;
   }
 }

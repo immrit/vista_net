@@ -218,7 +218,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onTap: () {
                 showAboutDialog(
                   context: context,
-                  applicationName: 'ویستا نت',
+                  applicationName: 'ویستانت',
                   applicationVersion: '1.0.0',
                   applicationIcon: Container(
                     width: 60,

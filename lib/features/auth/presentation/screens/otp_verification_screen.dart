@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../../../config/app_theme.dart';
+import '../../../../config/app_assets.dart';
 import '../providers/auth_provider.dart';
 import 'registration_screen.dart';
 
@@ -174,32 +175,48 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icon
+                // OTP Illustrator Image
                 Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.snappPrimary, AppTheme.snappSecondary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.snappPrimary.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.message_rounded,
-                    size: 50,
-                    color: Colors.white,
+                  height: 150,
+                  width: 150,
+                  alignment: Alignment.center,
+                  child: Image.asset(
+                    AppAssets.otpIllustrator,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              AppTheme.snappPrimary,
+                              AppTheme.snappSecondary,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.snappPrimary.withValues(
+                                alpha: 0.3,
+                              ),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.message_rounded,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 15),
 
                 const Text(
                   'کد تایید',

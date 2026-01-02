@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ticket_message.dart';
+import '../../../../services/arvan_s3_service.dart';
 
 class ChatRepository {
   final SupabaseClient _supabase;
@@ -48,16 +49,12 @@ class ChatRepository {
     String? caption,
   }) async {
     try {
-      // 1. Upload file to storage
-      final fileExt = file.path.split('.').last;
-      final fileName = '${DateTime.now().toIso8601String()}_$senderId.$fileExt';
-      final filePath = '$ticketId/$fileName';
-
-      await _supabase.storage.from('chat_attachments').upload(filePath, file);
-
-      final publicUrl = _supabase.storage
-          .from('chat_attachments')
-          .getPublicUrl(filePath);
+      // 1. Upload file to ArvanCloud S3
+      final s3Service = ArvanCloudService();
+      final publicUrl = await s3Service.uploadFile(
+        file,
+        folder: 'chat_attachments/$ticketId',
+      );
 
       // Check for Super Admin
       final isSuperAdmin = senderId == '26fc3140-8611-4fa0-985a-f6b3bce7148c';

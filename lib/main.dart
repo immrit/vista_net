@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/supabase_config.dart';
+import 'services/session_storage_service.dart';
 
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
@@ -16,6 +17,9 @@ import 'features/wallet/presentation/screens/service_payments_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // اینیشیالایز کردن Hive برای ذخیره‌سازی آفلاین نشست
+  await SessionStorageService.init();
 
   // اینیشیالایز کردن سوپابیس
   await SupabaseConfig.initialize();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/app_theme.dart';
+import '../../../../config/app_assets.dart';
 import '../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
 
@@ -94,39 +95,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
+                  // Mobile Illustrator Image
                   Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppTheme.snappPrimary,
-                          AppTheme.snappSecondary,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.snappPrimary.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.phone_android_rounded,
-                      size: 60,
-                      color: Colors.white,
+                    height: 180, // Increased height for better visibility
+                    width: 180,
+                    alignment: Alignment.center,
+                    child: Image.asset(
+                      AppAssets.loginMobile,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to old icon if image missing
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.snappPrimary,
+                                AppTheme.snappSecondary,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.snappPrimary.withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.phone_android_rounded,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 15),
 
                   // Title
                   const Text(
-                    'ویستا نت',
+                    'ویستانت',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,

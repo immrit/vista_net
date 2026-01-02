@@ -4,7 +4,7 @@
     <!-- Cafe Bazaar Billing Permissions -->
     <uses-permission android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"/>
     <application
-        android:label="ویستا نت"
+        android:label="ویستانت"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

@@ -65,16 +65,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Watch tickets provider
     final ticketsAsync = ref.watch(myTicketsProvider);
 
+    // Responsive logo size
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Calculate size as percentage of width, clamped to safe limits
+    final responsiveLogoSize = (screenWidth * 0.25).clamp(80.0, 110.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Light grey background
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const AppLogo(
+        title: AppLogo(
           showTitle: true,
-          size: 28,
+          size: responsiveLogoSize,
           useTransparent: true,
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -339,11 +344,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           );
                         },
                         child: Center(
-                          child: Icon(
-                            _getServiceIcon(service.icon),
-                            color: AppTheme.snappPrimary,
-                            size: 28,
-                          ),
+                          child:
+                              (service.imageUrl != null &&
+                                  service.imageUrl!.isNotEmpty)
+                              ? Builder(
+                                  builder: (context) {
+                                    // debugPrint('LOADING IMAGE: ${service.imageUrl}');
+                                    return Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Image.network(
+                                        service.imageUrl!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          debugPrint(
+                                            'IMAGE LOAD ERROR for ${service.title}: $error | URL: ${service.imageUrl}',
+                                          );
+                                          return Icon(
+                                            _getServiceIcon(service.icon),
+                                            color: AppTheme.snappPrimary,
+                                            size: 28,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Icon(
+                                  _getServiceIcon(service.icon),
+                                  color: AppTheme.snappPrimary,
+                                  size: 28,
+                                ),
                         ),
                       ),
                     ),
