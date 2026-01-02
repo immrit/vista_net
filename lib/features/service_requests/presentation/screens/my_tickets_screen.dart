@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../../models/ticket_model.dart';
-import '../../../../features/support_chat/presentation/screens/ticket_chat_screen.dart';
+import '../../../tickets/presentation/screens/ticket_chat_screen.dart';
 
 import '../providers/my_tickets_provider.dart';
 

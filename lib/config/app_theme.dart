@@ -5,6 +5,7 @@ class AppTheme {
   static const Color snappPrimary = Color(0xFF28AE5F); // سبز اصلی اسنپ
   static const Color snappSecondary = Color(0xFF1E8B4F); // سبز تیره‌تر
   static const Color snappAccent = Color(0xFF4BCF7A); // سبز روشن‌تر
+  static const Color snappPrimaryLight = Color(0xFFE8F7F0); // سبز خیلی روشن
   static const Color snappDark = Color(0xFF1A1A1A);
   static const Color snappGray = Color(0xFF6B7280);
   static const Color snappLightGray = Color(0xFFF3F4F6);

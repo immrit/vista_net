@@ -65,20 +65,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Check if user is already logged in (Auto-login on app start)
   Future<void> _checkAuthStatus() async {
+    state = state.copyWith(isLoading: true);
     try {
-      final user = await _authService.getCurrentUser();
-      if (user != null) {
+      final userProfile = await _authService.recoverSession();
+      if (userProfile != null) {
         state = state.copyWith(
+          isLoading: false,
           status: AuthStatus.authenticated,
-          userId: user['id'],
-          phoneNumber: user['phone_number'],
-          fullName: user['full_name'],
+          userId: userProfile['id'],
+          phoneNumber: userProfile['phone_number'],
+          fullName: userProfile['full_name'],
         );
       } else {
-        state = state.copyWith(status: AuthStatus.unauthenticated);
+        state = state.copyWith(
+          isLoading: false,
+          status: AuthStatus.unauthenticated,
+        );
       }
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.unauthenticated);
+      state = state.copyWith(
+        isLoading: false,
+        status: AuthStatus.unauthenticated,
+      );
     }
   }
 
@@ -114,7 +122,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final result = await _authService.verifyPhoneNumber(phoneNumber, code);
 
       if (result['success'] == true) {
-        // Verification successful - check if user exists
+        // Verification successful - fetch fresh profile data
         final userProfile = await _authService.getUserProfileByPhone(
           phoneNumber,
         );
@@ -130,12 +138,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           );
           return 'success';
         } else {
-          // User doesn't exist - needs registration
-          state = state.copyWith(
-            status: AuthStatus.needsRegistration,
-            isLoading: false,
-            phoneNumber: phoneNumber,
-          );
+          // Profile not found - Redirect to Registration
+          // This ensures we don't have users without profiles (orphan auth users)
           return 'user_not_found';
         }
       } else {

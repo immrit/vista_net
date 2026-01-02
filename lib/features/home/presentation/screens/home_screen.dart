@@ -1,0 +1,563 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../config/app_theme.dart';
+import '../../../../services/service_api.dart';
+import '../../../../services/popular_services_api.dart';
+import '../../../../models/service_model.dart';
+import '../../../../models/ticket_model.dart'; // Add TicketModel
+import '../../../../widgets/app_logo.dart';
+import '../../../../widgets/hamburger_menu.dart';
+
+import '../../../service_requests/presentation/providers/my_tickets_provider.dart'; // Add Provider
+import '../../../tickets/presentation/screens/ticket_chat_screen.dart'; // Add Chat Screen
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final ServiceApi _serviceApi = ServiceApi();
+  final PopularServicesApi _popularServicesApi = PopularServicesApi();
+  List<Service> _popularServices = [];
+  bool _isLoadingServices = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPopularServices();
+  }
+
+  Future<void> _loadPopularServices() async {
+    try {
+      final popularServices = await _popularServicesApi.getPopularServices(
+        limit: 8,
+      );
+
+      if (!mounted) return;
+
+      if (popularServices.isNotEmpty) {
+        setState(() {
+          _popularServices = popularServices;
+          _isLoadingServices = false;
+        });
+        return;
+      }
+
+      final allServices = await _serviceApi.getAllActiveServices();
+      if (!mounted) return;
+
+      setState(() {
+        _popularServices = allServices.take(8).toList();
+        _isLoadingServices = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingServices = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch tickets provider
+    final ticketsAsync = ref.watch(myTicketsProvider);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const AppLogo(
+          showTitle: true,
+          size: 28,
+          useTransparent: true,
+          textStyle: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.menu_rounded, color: Colors.black87),
+              ),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+      endDrawer: const HamburgerMenu(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            10,
+            20,
+            100,
+          ), // Bottom padding for nav bar
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 30),
+
+              _buildSectionTitle('خدمات پرکاربرد', Icons.grid_view_rounded),
+              const SizedBox(height: 16),
+              _buildServicesGrid(),
+
+              const SizedBox(height: 30),
+
+              _buildSectionTitle(
+                'درخواست‌های اخیر',
+                Icons.confirmation_number_rounded,
+              ),
+              const SizedBox(height: 16),
+              _buildActiveTickets(ticketsAsync),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.snappPrimary,
+            AppTheme.snappPrimary.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.snappPrimary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'سلام، کاربر عزیز', // Placeholder name
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Vazir',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'خوش آمدید',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                      fontFamily: 'Vazir',
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                ),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'موجودی کیف پول',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                      fontFamily: 'Vazir',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '0 تومان', // Placeholder balance
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Vazir',
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add, size: 16, color: AppTheme.snappPrimary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'افزایش موجودی',
+                      style: TextStyle(
+                        color: AppTheme.snappPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Vazir',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: AppTheme.snappPrimary, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Vazir',
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServicesGrid() {
+    if (_isLoadingServices) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_popularServices.isEmpty) {
+      return const Center(child: Text('خدمتی یافت نشد'));
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 30) / 4; // 4 items per row
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 20,
+          alignment: WrapAlignment.start,
+          children: _popularServices.map((service) {
+            return SizedBox(
+              width: itemWidth,
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () {
+                          // Navigate
+                          Navigator.pushNamed(
+                            context,
+                            '/service-form',
+                            arguments: service,
+                          );
+                        },
+                        child: Center(
+                          child: Icon(
+                            _getServiceIcon(service.icon),
+                            color: AppTheme.snappPrimary,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    service.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                      fontFamily: 'Vazir',
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveTickets(AsyncValue<List<TicketModel>> ticketsAsync) {
+    return ticketsAsync.when(
+      data: (tickets) {
+        if (tickets.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Center(
+              child: Text(
+                'درخواست فعالی ندارید',
+                style: TextStyle(color: Colors.grey, fontFamily: 'Vazir'),
+              ),
+            ),
+          );
+        }
+
+        final recentTickets = tickets.take(5).toList();
+
+        return SizedBox(
+          height: 140, // Height for horizontal list
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: recentTickets.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final ticket = recentTickets[index];
+              final statusColor = _getTicketStatusColor(ticket.status);
+
+              return Container(
+                width: 260,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TicketChatScreen(
+                            ticketId: ticket.id,
+                            ticketTitle: ticket.title,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _getTicketStatusText(ticket.status),
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Vazir',
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '#${ticket.id.substring(0, 4)}',
+                              style: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          ticket.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            fontFamily: 'Vazir',
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 12,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '1403/10/09', // Placeholder date logic needs intl
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                                fontFamily: 'Vazir',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, s) => Text('Error: $e'),
+    );
+  }
+
+  IconData _getServiceIcon(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'document':
+        return Icons.description_rounded;
+      case 'certificate':
+        return Icons.verified_rounded;
+      case 'license':
+        return Icons.card_membership_rounded;
+      case 'permit':
+        return Icons.assignment_rounded;
+      case 'registration':
+        return Icons.app_registration_rounded;
+      case 'renewal':
+        return Icons.refresh_rounded;
+      case 'payment':
+        return Icons.payment_rounded;
+      case 'consultation':
+        return Icons.psychology_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
+
+  Color _getTicketStatusColor(TicketStatus status) {
+    switch (status) {
+      case TicketStatus.pending:
+        return Colors.orange;
+      case TicketStatus.processing:
+        return Colors.blue;
+      case TicketStatus.completed:
+        return Colors.green;
+      case TicketStatus.rejected:
+        return Colors.red;
+      case TicketStatus.cancelled:
+        return Colors.grey;
+    }
+  }
+
+  String _getTicketStatusText(TicketStatus status) {
+    switch (status) {
+      case TicketStatus.pending:
+        return 'در انتظار';
+      case TicketStatus.processing:
+        return 'در حال بررسی';
+      case TicketStatus.completed:
+        return 'تکمیل شده';
+      case TicketStatus.rejected:
+        return 'رد شده';
+      case TicketStatus.cancelled:
+        return 'لغو شده';
+    }
+  }
+}

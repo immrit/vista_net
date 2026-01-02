@@ -25,25 +25,20 @@ class TicketService {
         throw Exception('کاربر وارد نشده است');
       }
 
-      final response = await _supabase
-          .from('tickets')
-          .insert({
-            'user_id': user.id,
-            'service_id': serviceId,
-            'service_title': serviceTitle,
-            'title': title,
-            'description': description,
-            'national_id': nationalId,
-            'personal_code': personalCode,
-            'address': address,
-            'birth_date': birthDate?.toIso8601String(),
-            'dynamic_fields': dynamicFields ?? {},
-            'details': details ?? {},
-            'uploaded_files': uploadedFiles ?? [],
-            'status': 'pending',
-          })
-          .select()
-          .single();
+      final response = await _attemptCreateTicket(
+        user: user,
+        serviceId: serviceId,
+        serviceTitle: serviceTitle,
+        title: title,
+        description: description,
+        nationalId: nationalId,
+        personalCode: personalCode,
+        address: address,
+        birthDate: birthDate,
+        dynamicFields: dynamicFields,
+        details: details,
+        uploadedFiles: uploadedFiles,
+      );
 
       return TicketModel.fromJson(response);
     } catch (e) {
@@ -51,19 +46,127 @@ class TicketService {
     }
   }
 
+  // Helper method to attempt ticket creation with retry logic
+  Future<dynamic> _attemptCreateTicket({
+    required User user,
+    required String serviceId,
+    required String serviceTitle,
+    required String title,
+    required String description,
+    String? nationalId,
+    String? personalCode,
+    String? address,
+    DateTime? birthDate,
+    Map<String, dynamic>? dynamicFields,
+    Map<String, dynamic>? details,
+    List<Map<String, dynamic>>? uploadedFiles,
+  }) async {
+    try {
+      return await _performInsert(
+        user,
+        serviceId,
+        serviceTitle,
+        title,
+        description,
+        nationalId,
+        personalCode,
+        address,
+        birthDate,
+        dynamicFields,
+        details,
+        uploadedFiles,
+      );
+    } on PostgrestException catch (e) {
+      // Check for Foreign Key Violation (Missing Profile)
+      if (e.code == '23503' && e.message.contains('tickets_user_id_fkey')) {
+        print(
+          '⚠️ Profile missing for ticket creation (FK Error). Auto-creating...',
+        );
+
+        // Self-heal: Create missing profile
+        await _supabase.from('profiles').upsert({
+          'id': user.id,
+          'phone_number': user.userMetadata?['phone_number'] ?? user.phone,
+          'full_name': 'کاربر بدون نام', // Placeholder name
+          'is_verified': true,
+        });
+
+        // Retry insert
+        print('🔄 Retrying ticket creation...');
+        return await _performInsert(
+          user,
+          serviceId,
+          serviceTitle,
+          title,
+          description,
+          nationalId,
+          personalCode,
+          address,
+          birthDate,
+          dynamicFields,
+          details,
+          uploadedFiles,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  // Actual insert operation
+  Future<dynamic> _performInsert(
+    User user,
+    String serviceId,
+    String serviceTitle,
+    String title,
+    String description,
+    String? nationalId,
+    String? personalCode,
+    String? address,
+    DateTime? birthDate,
+    Map<String, dynamic>? dynamicFields,
+    Map<String, dynamic>? details,
+    List<Map<String, dynamic>>? uploadedFiles,
+  ) {
+    return _supabase
+        .from('tickets')
+        .insert({
+          // 'user_id': user.id, // Handled by DB trigger
+          'service_id': serviceId,
+          'service_title': serviceTitle,
+          'title': title,
+          'description': description,
+          'national_id': nationalId,
+          'personal_code': personalCode,
+          'address': address,
+          'birth_date': birthDate?.toIso8601String(),
+          'dynamic_fields': dynamicFields ?? {},
+          'details': details ?? {},
+          'uploaded_files': uploadedFiles ?? [],
+          'status': 'open',
+        })
+        .select(
+          '*, service:services(title), user:profiles!tickets_user_id_fkey(full_name, phone_number)',
+        )
+        .single();
+  }
+
   // دریافت تیکت‌های کاربر
   Future<List<TicketModel>> getUserTickets() async {
     try {
       final user = _supabase.auth.currentUser;
+      print('🆔 Flutter User ID: ${user?.id}'); // Debug Log
       if (user == null) {
         throw Exception('کاربر وارد نشده است');
       }
 
-      final response = await _supabase
-          .from('tickets')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
+      var query = _supabase.from('tickets').select();
+
+      // If NOT Super Admin, filter by user_id
+      if (user.id != '26fc3140-8611-4fa0-985a-f6b3bce7148c') {
+        query = query.eq('user_id', user.id);
+      }
+
+      final response = await query.order('created_at', ascending: false);
 
       return (response as List)
           .map((json) => TicketModel.fromJson(json))
@@ -77,6 +180,7 @@ class TicketService {
   Future<TicketModel> getTicketById(String ticketId) async {
     try {
       final user = _supabase.auth.currentUser;
+      print('🔍 Fetching Ticket: $ticketId for User: ${user?.id}'); // Debug Log
       if (user == null) {
         throw Exception('کاربر وارد نشده است');
       }

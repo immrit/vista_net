@@ -34,18 +34,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Hide keyboard
-      FocusScope.of(context).unfocus();
+      // Temporary: Comment out unfocus to debug HardwareKeyboard crash
+      // FocusScope.of(context).unfocus();
+
+      print('🚀 Submitting Login Form for: ${_phoneController.text}');
 
       // Clear any previous errors
       ref.read(authProvider.notifier).clearError();
 
       // Send OTP using new provider
+      print('⏳ Sending OTP...');
       final success = await ref
           .read(authProvider.notifier)
           .sendOtp(_phoneController.text);
 
-      if (success && mounted) {
+      print('✅ Send OTP Result: $success');
+
+      if (!mounted) {
+        print('⚠️ Widget unmounted after OTP send');
+        return;
+      }
+
+      if (success) {
+        print('➡️ Navigating to OTP Screen...');
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -53,8 +64,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 OtpVerificationScreen(phoneNumber: _phoneController.text),
           ),
         );
-      } else if (mounted) {
+      } else {
         final error = ref.read(authProvider).error;
+        print('❌ OTP Error: $error');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error ?? 'خطا در ارسال کد'),

@@ -10,6 +10,7 @@ class AppLogo extends StatelessWidget {
     this.spacing = 8,
     this.textStyle,
     this.color,
+    this.useTransparent = false,
   });
 
   final double size;
@@ -17,22 +18,32 @@ class AppLogo extends StatelessWidget {
   final double spacing;
   final TextStyle? textStyle;
   final Color? color;
+  final bool useTransparent;
 
   @override
   Widget build(BuildContext context) {
-    final baseStyle = Theme.of(context).appBarTheme.titleTextStyle ??
+    final baseStyle =
+        Theme.of(context).appBarTheme.titleTextStyle ??
         Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onPrimary,
-            );
-    final resolvedTextStyle =
-        textStyle == null ? baseStyle : baseStyle?.merge(textStyle) ?? textStyle;
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.onPrimary,
+        );
+    final resolvedTextStyle = textStyle == null
+        ? baseStyle
+        : baseStyle?.merge(textStyle) ?? textStyle;
 
     Widget logoImage = Image.asset(
-      AppAssets.logo,
+      useTransparent ? AppAssets.logoTransparent : AppAssets.logo,
       width: size,
       height: size,
       fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(
+          Icons.image_not_supported_rounded,
+          size: size,
+          color: Colors.grey,
+        );
+      },
     );
 
     if (color != null) {
@@ -48,14 +59,16 @@ class AppLogo extends StatelessWidget {
         logoImage,
         if (showTitle) ...[
           SizedBox(width: spacing),
-          Text(
-            'ویستا نت',
-            style: resolvedTextStyle,
-            textDirection: TextDirection.rtl,
+          Flexible(
+            child: Text(
+              'ویستا نت',
+              style: resolvedTextStyle,
+              textDirection: TextDirection.rtl,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ],
     );
   }
 }
-

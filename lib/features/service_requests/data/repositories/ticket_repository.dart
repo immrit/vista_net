@@ -11,7 +11,7 @@ class TicketRepository {
 
   TicketRepository(this._supabase);
 
-  // 1. Get service details (Public access usually allowed)
+  // 1. Get service details with dynamic fields
   Future<Service> getServiceWithFields(String serviceId) async {
     final serviceResponse = await _supabase
         .from('services')
@@ -52,73 +52,87 @@ class TicketRepository {
     }
   }
 
-  // 3. Submit Ticket via RPC
+  // 3. Submit Ticket via Direct Insert (RLS handles user_id via trigger)
   Future<String> submitTicket({
     required String userId,
     required String serviceId,
     required String title,
-    required String status,
-    required String statusDetail,
     required String description,
     required Map<String, dynamic> dynamicFields,
     List<String>? fileUrls,
   }) async {
     try {
-      // لاگ کردن پارامترها برای دیباگ
+      debugPrint('[TicketRepository] Submitting ticket: $title');
       debugPrint(
-        'Sending RPC Params: userId=$userId, desc=$description, fields=$dynamicFields',
+        '[TicketRepository] Dynamic fields: ${dynamicFields.keys.toList()}',
       );
 
-      final params = {
-        'p_user_id': userId,
-        'p_service_id': serviceId,
-        'p_title': title,
-        'p_status': status,
-        'p_status_detail': statusDetail,
-        'p_description': description,
-        'p_dynamic_fields': dynamicFields,
-      };
+      // Direct Insert into 'tickets' table
+      // Note: 'user_id' is handled by DB trigger if set up
+      final response = await _supabase
+          .from('tickets')
+          .insert({
+            'service_id': serviceId,
+            'title': title,
+            'status': 'open',
+            'status_detail': 'submitted',
+            'description': description,
+            'dynamic_fields': dynamicFields,
+          })
+          .select('id')
+          .single();
 
-      // فراخوانی RPC
-      final ticketId = await _supabase.rpc('create_ticket_rpc', params: params);
+      final ticketId = response['id'] as String;
+      debugPrint('[TicketRepository] Ticket created with ID: $ticketId');
 
-      // Handle File Attachments
+      // Handle File Attachments as messages
       if (fileUrls != null && fileUrls.isNotEmpty) {
-        for (final url in fileUrls) {
-          try {
-            await _supabase.rpc(
-              'add_ticket_message_rpc',
-              params: {
-                'p_ticket_id': ticketId,
-                'p_sender_id': userId,
-                'p_content': 'فایل پیوست',
-                'p_message_type': 'file',
-                'p_media_url': url,
-              },
-            );
-          } catch (e) {
-            debugPrint('Error adding file attachment: $e');
+        final currentUser = _supabase.auth.currentUser;
+        if (currentUser == null) {
+          debugPrint(
+            '[TicketRepository] Warning: No current user for attachments',
+          );
+        } else {
+          for (final url in fileUrls) {
+            try {
+              await _supabase.from('ticket_messages').insert({
+                'ticket_id': ticketId,
+                'sender_id': currentUser.id,
+                'sender_type': 'user',
+                'type': 'file',
+                'message': 'فایل پیوست',
+                'media_url': url,
+              });
+              debugPrint('[TicketRepository] Attachment added: $url');
+            } catch (e) {
+              debugPrint('[TicketRepository] Error adding attachment: $e');
+            }
           }
         }
       }
 
-      return ticketId.toString();
+      return ticketId;
     } catch (e) {
-      debugPrint('RPC Error: $e');
-      throw Exception('خطا در ثبت تیکت: $e');
+      debugPrint('[TicketRepository] Submit Ticket Error: $e');
+      throw Exception('خطا در ثبت درخواست: $e');
     }
   }
 
-  // 4. Get User Tickets via RPC
+  // 4. Get User Tickets via Direct Select
   Future<List<TicketModel>> getUserTickets(String userId) async {
-    final response = await _supabase.rpc(
-      'get_user_tickets',
-      params: {'p_user_id': userId},
-    );
+    try {
+      final response = await _supabase
+          .from('tickets')
+          .select('*, service:services(title)')
+          .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => TicketModel.fromJson(json))
-        .toList();
+      return (response as List)
+          .map((json) => TicketModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('[TicketRepository] Get Tickets Error: $e');
+      throw Exception('خطا در دریافت درخواست‌ها: $e');
+    }
   }
 }
 

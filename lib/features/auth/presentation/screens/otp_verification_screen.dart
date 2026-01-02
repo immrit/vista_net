@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../../../config/app_theme.dart';
@@ -27,38 +28,54 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     _startResendTimer();
   }
 
+  Timer? _timer;
+
   @override
   void dispose() {
-    _otpController.dispose();
+    _timer?.cancel();
+    try {
+      _otpController.dispose();
+    } catch (_) {
+      // Ignore if already disposed
+    }
     super.dispose();
   }
 
   void _startResendTimer() {
-    if (!mounted) return;
+    _timer?.cancel();
     _resendTimer = 60;
     _canResend = false;
+    if (mounted) setState(() {});
 
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       setState(() {
-        _resendTimer--;
-        if (_resendTimer <= 0) {
+        if (_resendTimer > 0) {
+          _resendTimer--;
+        } else {
           _canResend = true;
+          timer.cancel();
         }
       });
-      return _resendTimer > 0;
     });
   }
 
   Future<void> _verifyCode() async {
+    if (!mounted) return;
     if (_otpController.text.length != 5) return;
+
+    final otpCode = _otpController.text; // Store before async
+    FocusScope.of(context).unfocus(); // Close keyboard before async operation
 
     ref.read(authProvider.notifier).clearError();
 
     final result = await ref
         .read(authProvider.notifier)
-        .verifyOtp(widget.phoneNumber, _otpController.text);
+        .verifyOtp(widget.phoneNumber, otpCode);
 
     if (!mounted) return;
 
@@ -66,8 +83,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       case 'success':
         // User logged in successfully - main.dart will handle navigation
         // Pop back to let the auth state listener redirect
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        break;
+        if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+        return; // Exit early to avoid any further processing
 
       case 'user_not_found':
         // Navigate to registration screen
@@ -235,7 +252,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                     onCompleted: (value) {
-                      if (mounted && !isLoading) _verifyCode();
+                      if (mounted && !isLoading && value.length == 5) {
+                        _verifyCode();
+                      }
                     },
                     onChanged: (value) {},
                   ),

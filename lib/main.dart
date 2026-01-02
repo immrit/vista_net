@@ -4,13 +4,15 @@ import 'config/supabase_config.dart';
 
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
-import 'screens/main_screen.dart';
+import 'features/main/presentation/screens/main_screen.dart';
+import 'features/admin/presentation/screens/admin_main_screen.dart';
+import 'features/admin/presentation/providers/admin_mode_provider.dart';
 
 import 'features/service_requests/presentation/screens/my_tickets_screen.dart';
 import 'models/service_model.dart';
-import 'screens/billing_screen.dart';
-import 'screens/service_form_screen.dart';
-import 'screens/service_payments_screen.dart';
+import 'features/wallet/presentation/screens/wallet_screen.dart';
+import 'features/service_requests/presentation/screens/service_form_screen.dart';
+import 'features/wallet/presentation/screens/service_payments_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,13 +28,10 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // گوش دادن به وضعیت احراز هویت (Custom Auth State)
-    final authState = ref.watch(authProvider);
-
     return MaterialApp(
       title: 'Vista Net',
       theme: ThemeData(fontFamily: 'Vazir', primarySwatch: Colors.blue),
-      home: _buildHome(authState),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
       routes: {
         '/billing': (context) => const BillingScreen(),
@@ -46,25 +45,33 @@ class MyApp extends ConsumerWidget {
             builder: (context) => ServiceFormScreen(service: service),
           );
         }
-        return null; // Let onUnknownRoute handle it if we had one, or default error.
+        return null;
       },
     );
   }
+}
 
-  Widget _buildHome(AuthState authState) {
-    switch (authState.status) {
-      case AuthStatus.initial:
-        // Still checking auth status
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+class AuthGate extends ConsumerWidget {
+  const AuthGate({super.key});
 
-      case AuthStatus.authenticated:
-        // User is logged in
-        return const MainScreen();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final isInAdminMode = ref.watch(adminModeProvider);
 
-      case AuthStatus.unauthenticated:
-      case AuthStatus.needsRegistration:
-        // Not logged in
-        return const LoginScreen();
+    // Only show global loading on app startup (initial check)
+    if (authState.status == AuthStatus.initial) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (authState.status == AuthStatus.authenticated) {
+      // Show admin or client mode based on provider state
+      if (isInAdminMode) {
+        return const AdminMainScreen();
+      }
+      return const MainScreen();
+    } else {
+      return const LoginScreen();
     }
   }
 }

@@ -5,8 +5,6 @@ import '../../../../models/service_model.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/ticket_repository.dart';
 
-// Repository Provider is imported from ticket_repository.dart
-
 // State
 class ServiceFormState {
   final bool isLoading;
@@ -75,7 +73,7 @@ class ServiceFormNotifier extends StateNotifier<ServiceFormState> {
     try {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
-        type: FileType.any, // Allow any file type or restrict as needed
+        type: FileType.any,
       );
 
       if (result != null) {
@@ -95,13 +93,22 @@ class ServiceFormNotifier extends StateNotifier<ServiceFormState> {
   Future<bool> submitForm() async {
     if (state.service == null) return false;
 
-    // 1. Get userId from AuthProvider (Custom Auth)
+    // 1. Get userId and fullName from AuthProvider
     final authState = _ref.read(authProvider);
     if (!authState.isLoggedIn || authState.userId == null) {
-      state = state.copyWith(error: 'User ID is null. Please log in again.');
-      throw Exception('User ID is null. Please log in again.');
+      state = state.copyWith(error: 'لطفاً وارد حساب کاربری شوید');
+      throw Exception('User not logged in');
     }
     final userId = authState.userId!;
+
+    // 2. Auto-generate title: [Service Title] - [User Name]
+    final userName = authState.fullName ?? 'کاربر';
+    final autoTitle = '${state.service!.title} - $userName';
+
+    // 3. Get description from formData if exists, otherwise use default
+    final description =
+        state.formData['description']?.toString() ??
+        'ارسال شده از طریق اپلیکیشن';
 
     state = state.copyWith(
       isSubmitting: true,
@@ -110,26 +117,30 @@ class ServiceFormNotifier extends StateNotifier<ServiceFormState> {
     );
 
     try {
-      // 2. Upload Files
+      // 4. Upload Files
       List<String> uploadedUrls = [];
       if (state.selectedFiles.isNotEmpty) {
-        for (var file in state.selectedFiles) {
+        final totalFiles = state.selectedFiles.length;
+        for (var i = 0; i < totalFiles; i++) {
+          final file = state.selectedFiles[i];
           if (file.path != null) {
             final url = await _repository.uploadFile(File(file.path!));
             uploadedUrls.add(url);
+            // Update progress: 10% to 50% for file uploads
+            final progress = 0.1 + (0.4 * (i + 1) / totalFiles);
+            state = state.copyWith(uploadProgress: progress);
           }
         }
+      } else {
+        state = state.copyWith(uploadProgress: 0.5);
       }
-      state = state.copyWith(uploadProgress: 0.5);
 
-      // 3. Submit Ticket via RPC
+      // 5. Submit Ticket
       await _repository.submitTicket(
         userId: userId,
         serviceId: state.service!.id,
-        title: state.formData['title'] ?? 'درخواست ${state.service!.title}',
-        status: 'open',
-        statusDetail: 'submitted',
-        description: state.formData['description'] ?? '',
+        title: autoTitle,
+        description: description,
         dynamicFields: state.formData,
         fileUrls: uploadedUrls,
       );

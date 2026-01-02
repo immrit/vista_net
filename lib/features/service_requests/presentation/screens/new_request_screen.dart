@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:shamsi_date/shamsi_date.dart';
 import '../../../../models/service_field_model.dart';
 import '../../../../config/app_theme.dart';
 import '../providers/service_form_provider.dart';
@@ -34,14 +35,6 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
   }
 
   @override
-  void deactivate() {
-    // Optional: clear state when leaving
-    // ref.read(serviceFormProvider.notifier).reset();
-    // Handled by autoDispose
-    super.deactivate();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(serviceFormProvider);
 
@@ -56,38 +49,49 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-          ? Center(child: Text('Error: ${state.error}'))
+          ? Center(child: Text('خطا: ${state.error}'))
           : state.service == null
-          ? const Center(child: Text('Service not found'))
+          ? const Center(child: Text('سرویس یافت نشد'))
           : Form(
               key: _formKey,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildHeader(state),
-                  const SizedBox(height: 20),
-                  _buildBasicFields(state),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
+
+                  // Dynamic Fields Section
                   if (state.service!.fields.isNotEmpty) ...[
-                    const Text(
-                      'اطلاعات تکمیلی',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    _buildSectionTitle('اطلاعات درخواست'),
                     const SizedBox(height: 12),
                     ...state.service!.fields.map(
                       (field) => _buildDynamicField(field, state),
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  _buildAttachmentsSection(state),
+
+                  // Attachments - ONLY if service requires documents
+                  if (state.service!.requiresDocuments) ...[
+                    const SizedBox(height: 20),
+                    _buildAttachmentsSection(state),
+                  ],
+
                   const SizedBox(height: 30),
                   _buildSubmitButton(state),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
     );
   }
 
@@ -99,7 +103,7 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -108,11 +112,32 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            state.service!.title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.snappPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.description_outlined,
+                  color: AppTheme.snappPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  state.service!.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             state.service!.description,
             style: TextStyle(color: Colors.grey[600], fontSize: 14),
@@ -126,14 +151,38 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange[200]!),
               ),
-              child: Text(
-                'هزینه: ${intl.NumberFormat('#,###').format(state.service!.costAmount)} تومان',
-                style: TextStyle(
-                  color: Colors.orange[800],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.monetization_on,
+                    color: Colors.orange[800],
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'هزینه: ${intl.NumberFormat('#,###').format(state.service!.costAmount)} تومان',
+                    style: TextStyle(
+                      color: Colors.orange[800],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ],
+          if (state.service!.processingTimeDays > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.schedule, color: Colors.grey[600], size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  'زمان پردازش: ${state.service!.processingTimeDays} روز کاری',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
             ),
           ],
         ],
@@ -141,48 +190,8 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
     );
   }
 
-  Widget _buildBasicFields(ServiceFormState state) {
-    return Column(
-      children: [
-        _buildTextField(
-          label: 'عنوان درخواست',
-          icon: Icons.title,
-          onChanged: (val) =>
-              ref.read(serviceFormProvider.notifier).updateField('title', val),
-          validator: (val) =>
-              (val == null || val.isEmpty) ? 'عنوان الزامی است' : null,
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          label: 'توضیحات',
-          icon: Icons.description,
-          maxLines: 3,
-          onChanged: (val) => ref
-              .read(serviceFormProvider.notifier)
-              .updateField('description', val),
-          validator: (val) =>
-              (val == null || val.isEmpty) ? 'توضیحات الزامی است' : null,
-        ),
-        if (state.service!.requiresNationalId) ...[
-          const SizedBox(height: 16),
-          _buildTextField(
-            label: 'کد ملی',
-            icon: Icons.badge,
-            keyboardType: TextInputType.number,
-            onChanged: (val) => ref
-                .read(serviceFormProvider.notifier)
-                .updateField('national_id', val),
-            validator: (val) =>
-                (val == null || val.length != 10) ? 'کد ملی ۱۰ رقم است' : null,
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildDynamicField(ServiceField field, ServiceFormState state) {
-    // If fieldType is file, we skip it here as we have a generic attachments section
-    // OR we could render a text saying "Please attach file below"
+    // Skip file fields - handled by attachments section
     if (field.fieldType == FieldType.file) {
       return const SizedBox.shrink();
     }
@@ -196,16 +205,63 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
   Widget _buildFieldByType(ServiceField field, ServiceFormState state) {
     switch (field.fieldType) {
       case FieldType.text:
-      case FieldType.email:
-      case FieldType.phone:
         return _buildTextField(
           label: field.fieldLabel,
           icon: Icons.text_fields,
+          placeholder: field.placeholder,
           onChanged: (val) => ref
               .read(serviceFormProvider.notifier)
               .updateField(field.fieldName, val),
           validator: field.isRequired
-              ? (val) => (val == null || val.isEmpty) ? 'الزامی است' : null
+              ? (val) => (val == null || val.isEmpty)
+                    ? '${field.fieldLabel} الزامی است'
+                    : null
+              : null,
+        );
+
+      case FieldType.email:
+        return _buildTextField(
+          label: field.fieldLabel,
+          icon: Icons.email_outlined,
+          placeholder: field.placeholder ?? 'example@email.com',
+          keyboardType: TextInputType.emailAddress,
+          onChanged: (val) => ref
+              .read(serviceFormProvider.notifier)
+              .updateField(field.fieldName, val),
+          validator: field.isRequired
+              ? (val) {
+                  if (val == null || val.isEmpty) {
+                    return '${field.fieldLabel} الزامی است';
+                  }
+                  if (!RegExp(
+                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                  ).hasMatch(val)) {
+                    return 'ایمیل نامعتبر است';
+                  }
+                  return null;
+                }
+              : null,
+        );
+
+      case FieldType.phone:
+        return _buildTextField(
+          label: field.fieldLabel,
+          icon: Icons.phone_outlined,
+          placeholder: field.placeholder ?? '09123456789',
+          keyboardType: TextInputType.phone,
+          onChanged: (val) => ref
+              .read(serviceFormProvider.notifier)
+              .updateField(field.fieldName, val),
+          validator: field.isRequired
+              ? (val) {
+                  if (val == null || val.isEmpty) {
+                    return '${field.fieldLabel} الزامی است';
+                  }
+                  if (!RegExp(r'^09\d{9}$').hasMatch(val)) {
+                    return 'شماره موبایل نامعتبر است';
+                  }
+                  return null;
+                }
               : null,
         );
 
@@ -213,43 +269,198 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
         return _buildTextField(
           label: field.fieldLabel,
           icon: Icons.numbers,
+          placeholder: field.placeholder,
           keyboardType: TextInputType.number,
           onChanged: (val) => ref
               .read(serviceFormProvider.notifier)
               .updateField(field.fieldName, val),
           validator: field.isRequired
-              ? (val) => (val == null || val.isEmpty) ? 'الزامی است' : null
+              ? (val) => (val == null || val.isEmpty)
+                    ? '${field.fieldLabel} الزامی است'
+                    : null
               : null,
         );
 
-      case FieldType.checkbox:
-        return CheckboxListTile(
-          title: Text(field.fieldLabel),
-          value: state.formData[field.fieldName] ?? false,
-          onChanged: (val) => ref
-              .read(serviceFormProvider.notifier)
-              .updateField(field.fieldName, val),
-          contentPadding: EdgeInsets.zero,
-        );
-
-      default:
+      case FieldType.textarea:
         return _buildTextField(
           label: field.fieldLabel,
-          icon: Icons.input,
+          icon: Icons.notes,
+          placeholder: field.placeholder,
+          maxLines: 4,
           onChanged: (val) => ref
               .read(serviceFormProvider.notifier)
               .updateField(field.fieldName, val),
+          validator: field.isRequired
+              ? (val) => (val == null || val.isEmpty)
+                    ? '${field.fieldLabel} الزامی است'
+                    : null
+              : null,
         );
+
+      case FieldType.select:
+        return _buildDropdownField(field, state);
+
+      case FieldType.date:
+        return _buildDateField(field, state);
+
+      case FieldType.checkbox:
+        return _buildCheckboxField(field, state);
+
+      case FieldType.file:
+        // Handled by attachments section
+        return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildDropdownField(ServiceField field, ServiceFormState state) {
+    final options = field.options.map((e) => e.toString()).toList();
+    final currentValue = state.formData[field.fieldName]?.toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: options.contains(currentValue) ? currentValue : null,
+        decoration: InputDecoration(
+          labelText: field.fieldLabel,
+          prefixIcon: Icon(Icons.arrow_drop_down_circle_outlined, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        items: options.map((option) {
+          return DropdownMenuItem<String>(value: option, child: Text(option));
+        }).toList(),
+        onChanged: (val) {
+          if (val != null) {
+            ref
+                .read(serviceFormProvider.notifier)
+                .updateField(field.fieldName, val);
+          }
+        },
+        validator: field.isRequired
+            ? (val) => (val == null || val.isEmpty)
+                  ? '${field.fieldLabel} الزامی است'
+                  : null
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildDateField(ServiceField field, ServiceFormState state) {
+    final selectedDate = state.formData[field.fieldName] as DateTime?;
+    String displayText = field.placeholder ?? 'انتخاب تاریخ';
+
+    if (selectedDate != null) {
+      final jalali = Jalali.fromDateTime(selectedDate);
+      displayText = '${jalali.year}/${jalali.month}/${jalali.day}';
+    }
+
+    return InkWell(
+      onTap: () => _selectDate(field),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today, color: Colors.grey[600], size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    field.fieldLabel,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    displayText,
+                    style: TextStyle(
+                      color: selectedDate != null
+                          ? Colors.black
+                          : Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectDate(ServiceField field) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+      locale: const Locale('fa', 'IR'),
+    );
+
+    if (picked != null) {
+      ref
+          .read(serviceFormProvider.notifier)
+          .updateField(field.fieldName, picked);
+    }
+  }
+
+  Widget _buildCheckboxField(ServiceField field, ServiceFormState state) {
+    final isChecked = state.formData[field.fieldName] == true;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: CheckboxListTile(
+        title: Text(field.fieldLabel),
+        subtitle: field.placeholder != null ? Text(field.placeholder!) : null,
+        value: isChecked,
+        onChanged: (val) => ref
+            .read(serviceFormProvider.notifier)
+            .updateField(field.fieldName, val ?? false),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        controlAffinity: ListTileControlAffinity.leading,
+        activeColor: AppTheme.snappPrimary,
+      ),
+    );
   }
 
   Widget _buildAttachmentsSection(ServiceFormState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'پیوست‌ها',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        _buildSectionTitle('پیوست‌ها'),
+        const SizedBox(height: 8),
+        Text(
+          'حداکثر ${state.service!.maxFilesCount} فایل (${state.service!.allowedFileTypes.join(', ')})',
+          style: TextStyle(color: Colors.grey[600], fontSize: 12),
         ),
         const SizedBox(height: 12),
         if (state.selectedFiles.isNotEmpty)
@@ -264,17 +475,41 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.attach_file, color: Colors.blue),
-                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.attach_file,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      file.name,
-                      style: const TextStyle(fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          file.name,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (file.size > 0)
+                          Text(
+                            '${(file.size / 1024).toStringAsFixed(1)} KB',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 20),
                     onPressed: () {
                       ref.read(serviceFormProvider.notifier).removeFile(file);
                     },
@@ -284,13 +519,17 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
             );
           }),
         OutlinedButton.icon(
-          onPressed: () {
-            ref.read(serviceFormProvider.notifier).pickFiles();
-          },
+          onPressed: state.selectedFiles.length >= state.service!.maxFilesCount
+              ? null
+              : () {
+                  ref.read(serviceFormProvider.notifier).pickFiles();
+                },
           icon: const Icon(Icons.add),
-          label: const Text('افزودن فایل'),
+          label: Text(
+            state.selectedFiles.isEmpty ? 'افزودن فایل' : 'افزودن فایل دیگر',
+          ),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -303,30 +542,43 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
   Widget _buildTextField({
     required String label,
     required IconData icon,
+    String? placeholder,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     required Function(String) onChanged,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Colors.white,
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      validator: validator,
+      child: TextFormField(
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: placeholder,
+          prefixIcon: Icon(icon, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        onChanged: onChanged,
+        validator: validator,
+      ),
     );
   }
 
   Widget _buildSubmitButton(ServiceFormState state) {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 54,
       child: ElevatedButton(
         onPressed: state.isSubmitting
             ? null
@@ -356,9 +608,11 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.snappPrimary,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 2,
         ),
         child: state.isSubmitting
             ? Row(
@@ -378,7 +632,14 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
                   ),
                 ],
               )
-            : const Text('ثبت درخواست', style: TextStyle(fontSize: 16)),
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.send, size: 20),
+                  SizedBox(width: 8),
+                  Text('ثبت درخواست', style: TextStyle(fontSize: 16)),
+                ],
+              ),
       ),
     );
   }

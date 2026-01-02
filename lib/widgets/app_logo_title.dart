@@ -31,7 +31,7 @@ class AppLogoTitle extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppLogo(size: logoSize),
+        AppLogo(size: logoSize, useTransparent: true),
         SizedBox(width: spacing),
         Flexible(
           child: Text(
