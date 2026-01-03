@@ -8,9 +8,11 @@ import '../../../../models/ticket_model.dart'; // Add TicketModel
 import '../../../../widgets/app_logo.dart';
 import '../../../../widgets/hamburger_menu.dart';
 
-import '../../../service_requests/presentation/providers/my_tickets_provider.dart'; // Add Provider
-import '../../../tickets/presentation/screens/ticket_chat_screen.dart'; // Add Chat Screen
+import '../../../service_requests/presentation/providers/my_tickets_provider.dart';
+import '../../../tickets/presentation/screens/ticket_chat_screen.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../../widgets/service_icon.dart';
+import '../../../services/presentation/providers/local_favorites_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +25,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ServiceApi _serviceApi = ServiceApi();
   final PopularServicesApi _popularServicesApi = PopularServicesApi();
   List<Service> _popularServices = [];
+  List<Service> _allServices = []; // For filtering favorites
   bool _isLoadingServices = true;
 
   @override
@@ -37,21 +40,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         limit: 8,
       );
 
-      if (!mounted) return;
-
-      if (popularServices.isNotEmpty) {
-        setState(() {
-          _popularServices = popularServices;
-          _isLoadingServices = false;
-        });
-        return;
-      }
-
       final allServices = await _serviceApi.getAllActiveServices();
+
       if (!mounted) return;
 
       setState(() {
-        _popularServices = allServices.take(8).toList();
+        _popularServices = popularServices.isNotEmpty
+            ? popularServices
+            : allServices.take(8).toList();
+        _allServices = allServices;
         _isLoadingServices = false;
       });
     } catch (e) {
@@ -64,6 +61,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     // Watch tickets provider
     final ticketsAsync = ref.watch(myTicketsProvider);
+    // Watch favorites provider
+    final favoritesState = ref.watch(localFavoritesProvider);
+    final userFavoriteServices = _allServices
+        .where((s) => favoritesState.favoriteIds.contains(s.id))
+        .toList();
 
     // Responsive logo size
     final screenWidth = MediaQuery.of(context).size.width;
@@ -128,6 +130,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildSectionTitle('خدمات پرکاربرد', Icons.grid_view_rounded),
               const SizedBox(height: 16),
               _buildServicesGrid(),
+
+              // User favorites section (only show if user has favorites)
+              if (userFavoriteServices.isNotEmpty) ...[
+                const SizedBox(height: 30),
+                _buildSectionTitle(
+                  'علاقه‌مندی‌های شما',
+                  Icons.favorite_rounded,
+                ),
+                const SizedBox(height: 16),
+                _buildUserFavoritesGrid(userFavoriteServices),
+              ],
 
               const SizedBox(height: 30),
 
@@ -317,66 +330,135 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: itemWidth,
               child: Column(
                 children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () {
-                          // Navigate
-                          Navigator.pushNamed(
-                            context,
-                            '/service-form',
-                            arguments: service,
-                          );
-                        },
-                        child: Center(
-                          child:
-                              (service.imageUrl != null &&
-                                  service.imageUrl!.isNotEmpty)
-                              ? Builder(
-                                  builder: (context) {
-                                    // debugPrint('LOADING IMAGE: ${service.imageUrl}');
-                                    return Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Image.network(
-                                        service.imageUrl!,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          debugPrint(
-                                            'IMAGE LOAD ERROR for ${service.title}: $error | URL: ${service.imageUrl}',
-                                          );
-                                          return Icon(
-                                            _getServiceIcon(service.icon),
-                                            color: AppTheme.snappPrimary,
-                                            size: 28,
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Icon(
-                                  _getServiceIcon(service.icon),
-                                  color: AppTheme.snappPrimary,
-                                  size: 28,
-                                ),
+                  Stack(
+                    children: [
+                      ServiceIcon(
+                        imageUrl: service.imageUrl,
+                        iconName: service.icon,
+                        containerSize: 70,
+                        size: 32,
+                        isNew:
+                            DateTime.now()
+                                .difference(service.createdAt)
+                                .inDays <
+                            7,
+                      ),
+                      Positioned.fill(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(22),
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/service-form',
+                                arguments: service,
+                              );
+                            },
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+                  Text(
+                    service.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                      fontFamily: 'Vazir',
                     ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserFavoritesGrid(List<Service> userFavoriteServices) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 30) / 4;
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 20,
+          alignment: WrapAlignment.start,
+          children: userFavoriteServices.map((service) {
+            return SizedBox(
+              width: itemWidth,
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      ServiceIcon(
+                        imageUrl: service.imageUrl,
+                        iconName: service.icon,
+                        containerSize: 70,
+                        size: 32,
+                      ),
+                      Positioned.fill(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(22),
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/service-form',
+                                arguments: service,
+                              );
+                            },
+                            onLongPress: () {
+                              ref
+                                  .read(localFavoritesProvider.notifier)
+                                  .removeFavorite(service.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'از علاقه‌مندی‌ها حذف شد',
+                                    style: TextStyle(fontFamily: 'Vazir'),
+                                  ),
+                                  duration: Duration(seconds: 1),
+                                  backgroundColor: Colors.grey,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      // Favorite indicator
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.redAccent,
+                            size: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -536,29 +618,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, s) => Text('Error: $e'),
     );
-  }
-
-  IconData _getServiceIcon(String iconName) {
-    switch (iconName.toLowerCase()) {
-      case 'document':
-        return Icons.description_rounded;
-      case 'certificate':
-        return Icons.verified_rounded;
-      case 'license':
-        return Icons.card_membership_rounded;
-      case 'permit':
-        return Icons.assignment_rounded;
-      case 'registration':
-        return Icons.app_registration_rounded;
-      case 'renewal':
-        return Icons.refresh_rounded;
-      case 'payment':
-        return Icons.payment_rounded;
-      case 'consultation':
-        return Icons.psychology_rounded;
-      default:
-        return Icons.category_rounded;
-    }
   }
 
   Color _getTicketStatusColor(TicketStatus status) {

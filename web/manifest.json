@@ -3,7 +3,7 @@
     "short_name": "vista_net",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "background_color": "#28AE5F",
     "theme_color": "#4CAF50",
     "description": "A new Flutter project.",
     "orientation": "portrait-primary",
