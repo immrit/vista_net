@@ -54,10 +54,10 @@ class ServicePaymentUsageExample extends StatelessWidget {
               service: sampleService,
               showAsButton: false,
               onPaymentSuccess: () {
-                print('Service payment successful!');
+                debugPrint('Service payment successful!');
               },
               onPaymentError: () {
-                print('Service payment failed!');
+                debugPrint('Service payment failed!');
               },
             ),
             const SizedBox(height: 24),
@@ -115,7 +115,7 @@ class ServicePaymentUsageExample extends StatelessWidget {
               buttonText: 'پرداخت سرویس',
               buttonColor: Colors.green,
               onPaymentSuccess: () {
-                print('Payment successful!');
+                debugPrint('Payment successful!');
               },
             ),
             const SizedBox(height: 24),

@@ -4,6 +4,7 @@ import '../../../../models/ticket_model.dart';
 import '../../../../services/chat_service.dart';
 import '../../../../services/ticket_service.dart';
 import '../widgets/ticket_timeline_widget.dart';
+import '../../../../widgets/shimmer_loading.dart';
 
 class TicketChatScreen extends StatefulWidget {
   final String ticketId;
@@ -186,7 +187,36 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                 ),
               ),
               child: _isLoadingMessages
-                  ? const Center(child: CircularProgressIndicator())
+                  ? ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: 6,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        final isMe = index % 2 == 0;
+                        return Align(
+                          alignment: isMe
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: ShimmerLoading.rectangular(
+                            height: 60,
+                            width: 200,
+                            shapeBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: isMe
+                                    ? const Radius.circular(16)
+                                    : const Radius.circular(4),
+                                bottomRight: isMe
+                                    ? const Radius.circular(4)
+                                    : const Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    )
                   : _buildMessagesList(),
             ),
           ),
@@ -329,7 +359,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
         ),
         decoration: BoxDecoration(
           color: message.isFromUser
-              ? AppTheme.snappPrimary.withOpacity(0.1)
+              ? AppTheme.snappPrimary.withValues(alpha: 0.1)
               : Colors.grey[100],
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),

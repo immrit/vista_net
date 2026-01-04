@@ -13,8 +13,12 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
-  bool _loading = true;
-  Map<String, int> _stats = {};
+  int _totalTickets = 0;
+  int _openTickets = 0;
+  int _todayTickets = 0;
+  // ignore: unused_field
+  int _completedTickets = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -25,218 +29,159 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Future<void> _loadStats() async {
     try {
       final supabase = Supabase.instance.client;
+      final today = DateTime.now().toIso8601String().split('T')[0];
 
-      final usersRes = await supabase
-          .from('profiles')
-          .select('id')
-          .count(CountOption.exact);
-      final ticketsRes = await supabase
+      // Get all tickets count
+      final allResponse = await supabase.from('tickets').select('id');
+      final total = (allResponse as List).length;
+
+      // Get open tickets count
+      final openResponse = await supabase.from('tickets').select('id').inFilter(
+        'status',
+        ['open', 'in_progress', 'pending'],
+      );
+      final open = (openResponse as List).length;
+
+      // Get today's tickets
+      final todayResponse = await supabase
           .from('tickets')
           .select('id')
-          .count(CountOption.exact);
-      final pendingRes = await supabase
+          .gte('created_at', today);
+      final todayCount = (todayResponse as List).length;
+
+      // Get completed tickets
+      final completedResponse = await supabase
           .from('tickets')
           .select('id')
-          .eq('status', 'open')
-          .count(CountOption.exact);
-      final servicesRes = await supabase
-          .from('services')
-          .select('id')
-          .count(CountOption.exact);
-      final activeRes = await supabase
-          .from('services')
-          .select('id')
-          .eq('is_active', true)
-          .count(CountOption.exact);
+          .eq('status', 'completed');
+      final completed = (completedResponse as List).length;
 
       if (mounted) {
         setState(() {
-          _stats = {
-            'users': usersRes.count,
-            'tickets': ticketsRes.count,
-            'pending': pendingRes.count,
-            'services': servicesRes.count,
-            'active': activeRes.count,
-          };
-          _loading = false;
+          _totalTickets = total;
+          _openTickets = open;
+          _todayTickets = todayCount;
+          _completedTickets = completed;
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('Error loading stats: $e');
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: const Text('پنل مدیریت'),
+        title: const Text('داشبورد مدیریت'),
         centerTitle: true,
         backgroundColor: AppTheme.snappPrimary,
-        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() => _loading = true);
-              _loadStats();
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await ref.read(authProvider.notifier).signOut();
             },
           ),
         ],
       ),
-      body: _loading
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadStats,
               child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Welcome Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.snappPrimary,
-                            AppTheme.snappSecondary,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.snappPrimary.withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.admin_panel_settings,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'سلام، ${authState.fullName ?? 'مدیر'}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'به پنل مدیریت خوش آمدید',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Stats Grid
                     const Text(
-                      'آمار کلی',
+                      'خلاصه وضعیت',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'Vazir',
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.5,
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
                         _buildStatCard(
-                          'کل کاربران',
-                          _stats['users'] ?? 0,
-                          Icons.people,
+                          'کل تیکت‌ها',
+                          _totalTickets,
+                          Icons.folder_copy_outlined,
                           Colors.blue,
+                          Colors.lightBlueAccent,
                         ),
+                        const SizedBox(width: 16),
                         _buildStatCard(
                           'تیکت‌های باز',
-                          _stats['pending'] ?? 0,
-                          Icons.pending_actions,
+                          _openTickets,
+                          Icons.access_time_filled,
                           Colors.orange,
-                        ),
-                        _buildStatCard(
-                          'کل تیکت‌ها',
-                          _stats['tickets'] ?? 0,
-                          Icons.confirmation_number,
-                          Colors.purple,
-                        ),
-                        _buildStatCard(
-                          'خدمات فعال',
-                          _stats['active'] ?? 0,
-                          Icons.check_circle,
-                          Colors.green,
+                          Colors.orangeAccent,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildStatCard(
+                          'تیکت‌های امروز',
+                          _todayTickets,
+                          Icons.today,
+                          Colors.purple,
+                          Colors.purpleAccent,
+                        ),
+                        const SizedBox(width: 16),
+                        _buildStatCard(
+                          'کاربران فعال',
+                          0, // Placeholder
+                          Icons.people_outline,
+                          Colors.teal,
+                          Colors.tealAccent,
+                        ),
+                      ],
+                    ),
 
-                    // Quick Actions
+                    const SizedBox(height: 32),
                     const Text(
                       'دسترسی سریع',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'Vazir',
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildQuickActionCard(
-                      'مشاهده تیکت‌های باز',
-                      'پاسخ‌دهی به درخواست‌های کاربران',
-                      Icons.confirmation_number_outlined,
-                      () {},
+                    const SizedBox(height: 16),
+
+                    _buildQuickAction(
+                      'مدیریت خدمات',
+                      'افزودن و ویرایش خدمات موجود',
+                      Icons.category_outlined,
+                      Colors.indigo,
+                      () {
+                        // Quick action navigation
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('به زودی...')),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    _buildQuickActionCard(
-                      'مدیریت کاربران',
-                      'مشاهده و ویرایش اطلاعات کاربران',
-                      Icons.people_outline,
-                      () {},
+                    _buildQuickAction(
+                      'گزارشات مالی',
+                      'مشاهده تراکنش‌ها و درآمدها',
+                      Icons.bar_chart_rounded,
+                      Colors.green,
+                      () {
+                        // Quick action navigation
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('به زودی...')),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -245,104 +190,121 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, int value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    int value,
+    IconData icon,
+    Color color1,
+    Color color2,
+  ) {
+    return Expanded(
+      child: Container(
+        height: 140,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color1, color2],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color1.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value.toString(),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontFamily: 'Vazir',
+                  ),
+                ),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Vazir',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-            ],
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.all(12),
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value.toString(),
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(
-                title,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
+          child: Icon(icon, color: color),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            fontFamily: 'Vazir',
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.snappPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppTheme.snappPrimary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-          ],
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontFamily: 'Vazir',
+          ),
         ),
+        trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
       ),
     );
   }

@@ -44,7 +44,7 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen>
             .order('created_at', ascending: false);
         _transactions = List<Map<String, dynamic>>.from(transactionsRes);
       } catch (e) {
-        print('transactions table may not exist: $e');
+        debugPrint('transactions table may not exist: $e');
       }
 
       // Load payments (may not exist)
@@ -57,12 +57,12 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen>
             .order('created_at', ascending: false);
         _payments = List<Map<String, dynamic>>.from(paymentsRes);
       } catch (e) {
-        print('service_payments table may not exist: $e');
+        debugPrint('service_payments table may not exist: $e');
       }
 
       if (mounted) setState(() => _loading = false);
     } catch (e) {
-      print('Error loading finance data: $e');
+      debugPrint('Error loading finance data: $e');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -290,7 +290,7 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen>
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         itemCount: _transactions.length,
         itemBuilder: (context, index) {
           final transaction = _transactions[index];
@@ -320,7 +320,7 @@ class _AdminFinanceScreenState extends ConsumerState<AdminFinanceScreen>
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         itemCount: _payments.length,
         itemBuilder: (context, index) {
           final payment = _payments[index];

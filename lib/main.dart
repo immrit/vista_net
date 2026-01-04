@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/supabase_config.dart';
 import 'services/session_storage_service.dart';
@@ -14,6 +15,12 @@ import 'models/service_model.dart';
 import 'features/wallet/presentation/screens/wallet_screen.dart';
 import 'features/service_requests/presentation/screens/service_form_screen.dart';
 import 'features/wallet/presentation/screens/service_payments_screen.dart';
+import 'features/services/presentation/screens/services_screen.dart';
+import 'features/profile/presentation/screens/profile_screen.dart';
+import 'features/notifications/presentation/screens/notifications_screen.dart';
+import 'features/services/presentation/screens/special_services_screen.dart';
+import 'features/settings/presentation/screens/settings_screen.dart';
+import 'features/support/presentation/screens/help_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,9 +42,28 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Vista Net',
       theme: ThemeData(fontFamily: 'Vazir', primarySwatch: Colors.blue),
+      // Localization setup
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fa', 'IR'), // Persian
+      ],
+      locale: const Locale('fa', 'IR'), // Force Persian
+
       home: const AuthGate(),
       debugShowCheckedModeBanner: false,
       routes: {
+        '/home': (context) => const MainScreen(),
+        '/services': (context) => const ServicesScreen(),
+        '/tickets': (context) => const MyTicketsScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/special-services': (context) => const SpecialServicesScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/help': (context) => const HelpScreen(),
         '/billing': (context) => const BillingScreen(),
         '/service-payments': (context) => const ServicePaymentsScreen(),
         '/support-chat': (context) => const MyTicketsScreen(),

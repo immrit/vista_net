@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 import '../../../../config/app_theme.dart';
+import '../../../wallet/presentation/providers/wallet_provider.dart';
 
 class AdminUsersScreen extends ConsumerStatefulWidget {
   const AdminUsersScreen({super.key});
@@ -37,7 +39,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         });
       }
     } catch (e) {
-      print('Error loading users: $e');
+      debugPrint('Error loading users: $e');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -143,7 +145,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 : RefreshIndicator(
                     onRefresh: _loadUsers,
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: _filteredUsers.length,
                       itemBuilder: (context, index) {
                         final user = _filteredUsers[index];
@@ -252,8 +254,111 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                 ),
               ),
 
+              IconButton(
+                icon: const Icon(
+                  Icons.account_balance_wallet,
+                  color: Colors.green,
+                ),
+                tooltip: 'افزایش موجودی',
+                onPressed: () => _showAddBalanceDialog(user),
+              ),
               Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddBalanceDialog(Map<String, dynamic> user) async {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController(
+      text: 'شارژ توسط ادمین',
+    );
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('افزایش موجودی ${user['full_name']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'مبلغ (تومان)',
+                  hintText: 'مثلاً ۵۰۰۰۰',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'توضیحات (اختیاری)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              if (isLoading) ...[
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('انصراف'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final amount = double.tryParse(amountController.text);
+                      if (amount == null || amount <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('مبلغ نامعتبر است')),
+                        );
+                        return;
+                      }
+
+                      setState(() => isLoading = true);
+                      try {
+                        await ref
+                            .read(walletRepositoryProvider)
+                            .addBalance(
+                              targetUserId: user['id'],
+                              amount: amount,
+                              description: descriptionController.text,
+                            );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('موجودی با موفقیت افزایش یافت'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          setState(() => isLoading = false);
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('خطا: $e')));
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('افزایش'),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),
@@ -388,8 +493,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '-';
     try {
-      final date = DateTime.parse(dateStr);
-      return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+      final date = DateTime.parse(dateStr).toLocal();
+      final jalali = Jalali.fromDateTime(date);
+      return '${jalali.formatter.yyyy}/${jalali.formatter.mm}/${jalali.formatter.dd}';
     } catch (e) {
       return '-';
     }

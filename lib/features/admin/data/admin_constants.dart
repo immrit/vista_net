@@ -1,5 +1,6 @@
 /// Admin Constants
 /// این فایل شامل ثابت‌های مربوط به ادمین است
+library;
 
 class AdminConstants {
   // Admin User ID - Only this user gets admin access

@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ticket_model.dart';
 
@@ -79,7 +79,7 @@ class TicketService {
     } on PostgrestException catch (e) {
       // Check for Foreign Key Violation (Missing Profile)
       if (e.code == '23503' && e.message.contains('tickets_user_id_fkey')) {
-        print(
+        debugPrint(
           '⚠️ Profile missing for ticket creation (FK Error). Auto-creating...',
         );
 
@@ -92,7 +92,7 @@ class TicketService {
         });
 
         // Retry insert
-        print('🔄 Retrying ticket creation...');
+        debugPrint('🔄 Retrying ticket creation...');
         return await _performInsert(
           user,
           serviceId,
@@ -154,7 +154,7 @@ class TicketService {
   Future<List<TicketModel>> getUserTickets() async {
     try {
       final user = _supabase.auth.currentUser;
-      print('🆔 Flutter User ID: ${user?.id}'); // Debug Log
+      debugPrint('🆔 Flutter User ID: ${user?.id}'); // Debug Log
       if (user == null) {
         throw Exception('کاربر وارد نشده است');
       }
@@ -180,7 +180,9 @@ class TicketService {
   Future<TicketModel> getTicketById(String ticketId) async {
     try {
       final user = _supabase.auth.currentUser;
-      print('🔍 Fetching Ticket: $ticketId for User: ${user?.id}'); // Debug Log
+      debugPrint(
+        '🔍 Fetching Ticket: $ticketId for User: ${user?.id}',
+      ); // Debug Log
       if (user == null) {
         throw Exception('کاربر وارد نشده است');
       }

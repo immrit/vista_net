@@ -208,6 +208,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  // Update profile
+  Future<void> updateProfile({String? fullName}) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final result = await _authService.updateProfile(fullName: fullName);
+      if (result['success'] == true) {
+        state = state.copyWith(
+          isLoading: false,
+          fullName: fullName ?? state.fullName,
+        );
+      } else {
+        state = state.copyWith(isLoading: false, error: result['message']);
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: 'خطا: $e');
+    }
+  }
 }
 
 // ============================================================

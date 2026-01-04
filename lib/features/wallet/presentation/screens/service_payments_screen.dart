@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../services/service_payment_service.dart';
 import '../../../../services/service_api.dart';
 import '../../../../models/service_model.dart';
+import '../../../../widgets/shimmer_loading.dart';
 
 class ServicePaymentsScreen extends StatefulWidget {
   const ServicePaymentsScreen({super.key});
@@ -164,7 +165,7 @@ class _ServicePaymentsScreenState extends State<ServicePaymentsScreen> {
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(),
+              child: Center(child: ShimmerLoading.circular(size: 40)),
             ),
 
           // Services list

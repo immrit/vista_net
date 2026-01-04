@@ -329,7 +329,7 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
         ],
       ),
       child: DropdownButtonFormField<String>(
-        value: options.contains(currentValue) ? currentValue : null,
+        initialValue: options.contains(currentValue) ? currentValue : null,
         decoration: InputDecoration(
           labelText: field.fieldLabel,
           prefixIcon: Icon(Icons.arrow_drop_down_circle_outlined, size: 20),

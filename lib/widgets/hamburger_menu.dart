@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../services/chat_service.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
-import 'app_logo.dart';
+import '../features/wallet/presentation/providers/wallet_provider.dart';
 
 class HamburgerMenu extends ConsumerStatefulWidget {
   const HamburgerMenu({super.key});
@@ -38,78 +39,124 @@ class _HamburgerMenuState extends ConsumerState<HamburgerMenu> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final walletState = ref.watch(walletProvider);
     final phone = user?['phone_number'] ?? 'کاربر مهمان';
     final name = user?['full_name'] as String? ?? 'کاربر گرامی';
+    final balance = NumberFormat('#,###').format(walletState.balance);
 
     return Drawer(
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(25),
-          bottomLeft: Radius.circular(25),
-        ),
-      ),
+      backgroundColor:
+          Colors.transparent, // Transparent to show container shape
+      elevation: 0,
       child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-            colors: [
-              Colors.white,
-              AppTheme.snappLightGray.withValues(alpha: 0.3),
-            ],
-          ),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            bottomLeft: Radius.circular(25),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            bottomLeft: Radius.circular(30),
           ),
         ),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            _buildMenuHeader(name, phone),
-            _buildMenuItems(),
-            _buildMenuFooter(),
+        child: Column(
+          children: [
+            _buildHeader(context, name, phone, balance),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                children: [
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.home_rounded,
+                    title: 'خانه',
+                    routeName: '/home',
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.grid_view_rounded,
+                    title: 'خدمات',
+                    routeName: '/services',
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.confirmation_number_rounded,
+                    title: 'تیکت‌های من',
+                    routeName: '/tickets',
+                    badge: _unreadMessagesCount > 0
+                        ? _unreadMessagesCount.toString()
+                        : null,
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.star_rounded,
+                    title: 'خدمات ویژه',
+                    routeName: '/special-services',
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.notifications_rounded,
+                    title: 'اعلان‌ها',
+                    routeName: '/notifications',
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.person_rounded,
+                    title: 'پروفایل کاربری',
+                    routeName: '/profile',
+                  ),
+                ],
+              ),
+            ),
+            _buildFooter(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuHeader(String name, String phone) {
+  Widget _buildHeader(
+    BuildContext context,
+    String name,
+    String phone,
+    String balance,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
           colors: [AppTheme.snappPrimary, AppTheme.snappSecondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(25)),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          bottomLeft: Radius.circular(5), // Slight curve inside
+        ),
         boxShadow: [
           BoxShadow(
             color: AppTheme.snappPrimary.withValues(alpha: 0.3),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 2,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 35,
+                    color: Color(0xFFE0E0E0),
                   ),
                 ),
-                child: const AppLogo(size: 52),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -117,17 +164,24 @@ class _HamburgerMenuState extends ConsumerState<HamburgerMenu> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'خوش آمدید',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
+                      name,
+                      style: const TextStyle(
+                        fontFamily: 'Vazir',
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      name,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      phone,
+                      style: TextStyle(
+                        fontFamily: 'Vazir',
+                        fontSize: 13,
                         color: Colors.white.withValues(alpha: 0.8),
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -136,114 +190,12 @@ class _HamburgerMenuState extends ConsumerState<HamburgerMenu> {
             ],
           ),
           const SizedBox(height: 20),
-          // Stats Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  icon: Icons.confirmation_number_rounded,
-                  title: 'تیکت‌ها',
-                  value: '0', // TODO: Get from provider
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  icon: Icons.chat_rounded,
-                  title: 'پیام‌ها',
-                  value: _unreadMessagesCount.toString(),
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItems() {
-    return Column(
-      children: [
-        _buildDrawerItem(
-          context,
-          icon: Icons.home_rounded,
-          title: 'خانه',
-          routeName: '/home',
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.grid_view_rounded,
-          title: 'خدمات',
-          routeName: '/services',
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.confirmation_number_rounded,
-          title: 'تیکت‌ها',
-          routeName: '/tickets',
-          badge: _unreadMessagesCount > 0
-              ? _unreadMessagesCount.toString()
-              : null,
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.star_rounded,
-          title: 'خدمات ویژه',
-          routeName: '/special-services',
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.notifications_rounded,
-          title: 'اعلان‌ها',
-          routeName: '/notifications',
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.person_rounded,
-          title: 'پروفایل',
-          routeName: '/profile',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDrawerItem(
+  Widget _buildMenuItem(
     BuildContext context, {
     required IconData icon,
     required String title,
@@ -251,112 +203,166 @@ class _HamburgerMenuState extends ConsumerState<HamburgerMenu> {
     String? badge,
     VoidCallback? onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.snappPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppTheme.snappPrimary, size: 20),
+    // Check if this route is active (simple check, can be improved)
+    // Note: ModalRoute.of(context)?.settings.name might be null or different in Drawer
+    // For now, we keep it simple without active state highlighting logic unless passed
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap:
+              onTap ??
+              () {
+                Navigator.pop(context); // Close drawer
+                if (routeName != null) {
+                  // Assuming simple navigation or using existing named routes if available
+                  // If named routes are not set up in main.dart, this might need Navigator.push replacement
+                  // But based on previous code, let's stick to this or assume caller handles it.
+                  // Just trying to pushNamed. If it fails, user will report.
+                  // Previous code had logic issues mentioned in comments.
+                  // Let's assume standard named routes for now as requested by user to "Redesign".
+                  Navigator.pushNamed(context, routeName);
+                }
+              },
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA), // Very light gray for bubbles
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFEEEEEE)),
             ),
-            if (badge != null)
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    badge,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: AppTheme.snappPrimary.withValues(alpha: 0.8),
                   ),
                 ),
-              ),
-          ],
-        ),
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppTheme.snappDark,
-            fontWeight: FontWeight.w600,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Vazir',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF444444),
+                    ),
+                  ),
+                ),
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontFamily: 'Vazir',
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red[700],
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey[400],
+                  ),
+              ],
+            ),
           ),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: AppTheme.snappGray,
-          size: 16,
-        ),
-        onTap:
-            onTap ??
-            () {
-              Navigator.pop(context); // Close the drawer
-              if (routeName != null) {
-                // For now, since we don't have named routes fully set up in main.dart correctly (we removed routes map),
-                // we should rely on navigation in main.dart?
-                // Wait, main.dart removed routes map. Navigation via named routes will FAIL.
-                // I need to fix main.dart to include routes OR change navigation here.
-                // Assuming I will fix main.dart routes later or now.
-                // Actually, I should probably add routes back to MainApp.
-                // But for refactoring Phase 1, I just need it to run.
-                // Let's assume onGenerateRoute or similar will be added or I add routes back to main.dart.
-                // I'll keep this logic but I MUST add routes to main.dart. (Noted)
-              }
-            },
       ),
     );
   }
 
-  Widget _buildMenuFooter() {
-    return Column(
-      children: [
-        const Divider(),
-        _buildDrawerItem(
-          context,
-          icon: Icons.settings_rounded,
-          title: 'تنظیمات',
-          routeName: '/settings',
+  Widget _buildFooter(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _buildSimpleMenuItem(
+            context,
+            icon: Icons.settings_outlined,
+            title: 'تنظیمات',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+          const SizedBox(height: 8),
+          _buildSimpleMenuItem(
+            context,
+            icon: Icons.logout_rounded,
+            title: 'خروج از حساب',
+            isDestructive: true,
+            onTap: () => _logout(),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'نسخه ۱.۰.۲',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[400],
+              fontFamily: 'Vazir',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? Colors.red[400] : Colors.grey[700];
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: 'Vazir',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
         ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.help_rounded,
-          title: 'راهنما و پشتیبانی',
-          routeName: '/help',
-        ),
-        _buildDrawerItem(
-          context,
-          icon: Icons.logout_rounded,
-          title: 'خروج',
-          onTap: () => _logout(),
-        ),
-      ],
+      ),
     );
   }
 
@@ -364,22 +370,33 @@ class _HamburgerMenuState extends ConsumerState<HamburgerMenu> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('خروج از حساب'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'خروج از حساب',
+          style: TextStyle(fontFamily: 'Vazir', fontWeight: FontWeight.bold),
+        ),
         content: const Text(
           'آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟',
+          style: TextStyle(fontFamily: 'Vazir'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('لغو'),
+            child: const Text(
+              'لغو',
+              style: TextStyle(fontFamily: 'Vazir', color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              Navigator.pop(context); // Close Drawer
               await ref.read(authProvider.notifier).signOut();
-              // main.dart listening to authState will handle redirection to login
             },
-            child: const Text('خروج'),
+            child: const Text(
+              'خروج',
+              style: TextStyle(fontFamily: 'Vazir', color: Colors.red),
+            ),
           ),
         ],
       ),

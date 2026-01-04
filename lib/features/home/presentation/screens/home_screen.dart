@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../features/wallet/presentation/providers/wallet_provider.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../services/service_api.dart';
 import '../../../../services/popular_services_api.dart';
 import '../../../../models/service_model.dart';
 import '../../../../models/ticket_model.dart'; // Add TicketModel
 import '../../../../widgets/app_logo.dart';
-import '../../../../widgets/hamburger_menu.dart';
 
 import '../../../service_requests/presentation/providers/my_tickets_provider.dart';
 import '../../../tickets/presentation/screens/ticket_chat_screen.dart';
-import '../../../notifications/presentation/screens/notifications_screen.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 import '../../../../widgets/service_icon.dart';
 import '../../../services/presentation/providers/local_favorites_provider.dart';
+
+import '../../../../widgets/shimmer_loading.dart';
+import '../../../main/presentation/providers/main_scaffold_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -57,6 +62,222 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  bool _loading = false;
+
+  Future<void> _loadData() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+
+    // Refresh wallet balance
+    await ref.read(walletProvider.notifier).refreshBalance();
+
+    setState(() => _loading = false);
+  }
+
+  void _showTopUpDialog() {
+    final amountController = TextEditingController();
+    int? selectedAmount;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              Text(
+                'افزایش موجودی کیف پول',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Vazir',
+                  color: AppTheme.snappPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'مبلغ مورد نظر را انتخاب کنید',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontFamily: 'Vazir',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              // Predefined amounts
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [50000, 100000, 200000, 500000].map((amount) {
+                  final isSelected = selectedAmount == amount;
+                  final formattedAmount = NumberFormat(
+                    '#,###',
+                    'fa_IR',
+                  ).format(amount);
+                  return GestureDetector(
+                    onTap: () {
+                      setModalState(() {
+                        selectedAmount = amount;
+                        amountController.text = amount.toString();
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.snappPrimary
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.snappPrimary
+                              : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Text(
+                        '$formattedAmount تومان',
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Vazir',
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              // Custom amount input
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Vazir',
+                ),
+                decoration: InputDecoration(
+                  hintText: 'یا مبلغ دلخواه وارد کنید',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[400],
+                    fontFamily: 'Vazir',
+                    fontSize: 14,
+                  ),
+                  suffixText: 'تومان',
+                  suffixStyle: const TextStyle(
+                    fontFamily: 'Vazir',
+                    fontWeight: FontWeight.bold,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppTheme.snappPrimary,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                onChanged: (value) {
+                  setModalState(() {
+                    selectedAmount = int.tryParse(value);
+                  });
+                },
+              ),
+              const SizedBox(height: 24),
+              // Proceed button
+              ElevatedButton(
+                onPressed: selectedAmount != null && selectedAmount! > 0
+                    ? () {
+                        Navigator.pop(context);
+                        _initiatePayment(selectedAmount!);
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.snappPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
+                child: const Text(
+                  'پرداخت و شارژ کیف پول',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Vazir',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'پرداخت از طریق کافه بازار انجام می‌شود',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                  fontFamily: 'Vazir',
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _initiatePayment(int amount) {
+    // TODO: Integrate with Cafe Bazaar when ready
+    // For now, show a placeholder message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'درگاه پرداخت به زودی فعال می‌شود. مبلغ انتخابی: ${NumberFormat('#,###', 'fa_IR').format(amount)} تومان',
+          style: const TextStyle(fontFamily: 'Vazir'),
+        ),
+        backgroundColor: AppTheme.snappPrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch tickets provider
@@ -73,10 +294,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final responsiveLogoSize = (screenWidth * 0.25).clamp(80.0, 110.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         title: AppLogo(
           showTitle: true,
           size: responsiveLogoSize,
@@ -89,31 +310,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         centerTitle: false,
         actions: [
+          // Menu button
           Builder(
-            builder: (context) => IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+            builder: (context) => Container(
+              margin: const EdgeInsets.only(left: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  width: 1,
                 ),
-                child: const Icon(Icons.menu_rounded, color: Colors.black87),
               ),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
+              child: IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black87),
+                onPressed: () {
+                  ref
+                      .read(mainScaffoldKeyProvider)
+                      .currentState
+                      ?.openEndDrawer();
+                },
+                tooltip: 'منو',
+                splashRadius: 24,
+              ),
             ),
           ),
           const SizedBox(width: 16),
         ],
       ),
-      endDrawer: const HamburgerMenu(),
+      // endDrawer: const HamburgerMenu(), // Moved to MainScreen for correct z-index
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
             20,
@@ -158,6 +392,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildHeader() {
+    // Watch wallet provider
+    final walletState = ref.watch(walletProvider);
+    final formattedBalance = NumberFormat(
+      '#,###',
+      'fa_IR',
+    ).format(walletState.balance);
+
+    // Watch currentUser provider
+    final user = ref.watch(currentUserProvider);
+    final userName = user?['full_name'] as String? ?? 'کاربر';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -165,17 +410,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         gradient: LinearGradient(
           colors: [
             AppTheme.snappPrimary,
-            AppTheme.snappPrimary.withOpacity(0.8),
+            const Color(0xFF00C896), // Lighter Teal
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.snappPrimary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppTheme.snappPrimary.withValues(alpha: 0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -189,19 +434,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'سلام، کاربر عزیز', // Placeholder name
-                    style: const TextStyle(
+                    'سلام، $userName عزیز', // Placeholder name
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Vazir',
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          offset: const Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'خوش آمدید',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
                       fontFamily: 'Vazir',
                     ),
@@ -209,23 +461,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
               InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
-                ),
+                onTap: () => _loadData(),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.notifications_none_rounded,
-                    color: Colors.white,
-                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.refresh_rounded, color: Colors.white),
                 ),
               ),
             ],
@@ -241,14 +494,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Text(
                     'موجودی کیف پول',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,
                       fontFamily: 'Vazir',
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '0 تومان', // Placeholder balance
+                  Text(
+                    '$formattedBalance تومان',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -258,29 +511,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.add, size: 16, color: AppTheme.snappPrimary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'افزایش موجودی',
-                      style: TextStyle(
-                        color: AppTheme.snappPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Vazir',
+              GestureDetector(
+                onTap: () => _showTopUpDialog(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.add, size: 16, color: AppTheme.snappPrimary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'افزایش موجودی',
+                        style: TextStyle(
+                          color: AppTheme.snappPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Vazir',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -310,7 +566,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildServicesGrid() {
     if (_isLoadingServices) {
-      return const Center(child: CircularProgressIndicator());
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - 30) / 4;
+          return Wrap(
+            spacing: 10,
+            runSpacing: 20,
+            alignment: WrapAlignment.start,
+            children: List.generate(8, (index) {
+              return SizedBox(
+                width: itemWidth,
+                child: Column(
+                  children: [
+                    const ShimmerLoading.circular(size: 64),
+                    const SizedBox(height: 8),
+                    ShimmerLoading.rectangular(
+                      height: 12,
+                      width: itemWidth * 0.8,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          );
+        },
+      );
     }
 
     if (_popularServices.isEmpty) {
@@ -335,8 +615,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ServiceIcon(
                         imageUrl: service.imageUrl,
                         iconName: service.icon,
-                        containerSize: 70,
-                        size: 32,
+                        containerSize: 64,
+                        size: 30,
                         isNew:
                             DateTime.now()
                                 .difference(service.createdAt)
@@ -402,8 +682,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ServiceIcon(
                         imageUrl: service.imageUrl,
                         iconName: service.icon,
-                        containerSize: 70,
-                        size: 32,
+                        containerSize: 64,
+                        size: 30,
                       ),
                       Positioned.fill(
                         child: Material(
@@ -446,7 +726,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 4,
                               ),
                             ],
@@ -523,7 +803,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -556,7 +836,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
+                                color: statusColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -597,7 +877,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '1403/10/09', // Placeholder date logic needs intl
+                              '${Jalali.fromDateTime(ticket.createdAt).formatter.yyyy}/${Jalali.fromDateTime(ticket.createdAt).formatter.mm}/${Jalali.fromDateTime(ticket.createdAt).formatter.dd}',
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,
@@ -615,7 +895,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => SizedBox(
+        height: 140,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3,
+          separatorBuilder: (context, index) => const SizedBox(width: 12),
+          itemBuilder: (context, index) => Container(
+            width: 260,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ShimmerLoading.rectangular(height: 20, width: 80),
+                    ShimmerLoading.rectangular(height: 12, width: 40),
+                  ],
+                ),
+                ShimmerLoading.rectangular(height: 16, width: 150),
+                ShimmerLoading.rectangular(height: 12, width: 100),
+              ],
+            ),
+          ),
+        ),
+      ),
       error: (e, s) => Text('Error: $e'),
     );
   }

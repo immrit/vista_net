@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/admin_constants.dart';
@@ -75,7 +76,7 @@ class AdminNotifier extends StateNotifier<AdminStats> {
         activeServices: activeRes.count,
       );
     } catch (e) {
-      print('Error loading admin stats: $e');
+      debugPrint('Error loading admin stats: $e');
     }
   }
 }

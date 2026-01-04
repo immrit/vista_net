@@ -5,6 +5,8 @@ import '../providers/services_provider.dart';
 import '../providers/local_favorites_provider.dart';
 import '../../../../models/service_model.dart';
 import '../../../../models/service_category_model.dart';
+import '../../../../widgets/shimmer_loading.dart';
+import '../../../../widgets/service_icon.dart';
 
 class ServicesScreen extends ConsumerWidget {
   const ServicesScreen({super.key});
@@ -43,47 +45,102 @@ class ServicesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: state.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.snappPrimary),
-            )
-          : state.error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        bottom: false,
+        child: state.isLoading
+            ? Column(
                 children: [
-                  Text(
-                    'خطا: ${state.error}',
-                    style: const TextStyle(color: Colors.black54),
+                  // Shimmer Categories
+                  Container(
+                    height: 50,
+                    margin: const EdgeInsets.symmetric(vertical: 16),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 5,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (context, index) =>
+                          ShimmerLoading.rectangular(
+                            height: 40,
+                            width: 100,
+                            shapeBorder: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                    ),
+                  ),
+                  // Shimmer Grid
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final itemWidth = (constraints.maxWidth - 30) / 4;
+                          return Wrap(
+                            spacing: 10,
+                            runSpacing: 20,
+                            alignment: WrapAlignment.start,
+                            children: List.generate(12, (index) {
+                              return SizedBox(
+                                width: itemWidth,
+                                child: Column(
+                                  children: [
+                                    const ShimmerLoading.circular(size: 64),
+                                    const SizedBox(height: 8),
+                                    ShimmerLoading.rectangular(
+                                      height: 12,
+                                      width: itemWidth * 0.8,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : state.error != null
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'خطا: ${state.error}',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => controller.loadData(),
+                      child: const Text('تلاش مجدد'),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                children: [
+                  _buildCategoryTabs(
+                    context,
+                    ref,
+                    state.categories,
+                    state.selectedCategoryId,
+                    controller,
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => controller.loadData(),
-                    child: const Text('تلاش مجدد'),
+                  Expanded(
+                    child: _buildServicesGrid(
+                      context,
+                      ref,
+                      state.filteredServices,
+                      favoritesState,
+                    ),
                   ),
                 ],
               ),
-            )
-          : Column(
-              children: [
-                _buildCategoryTabs(
-                  context,
-                  ref,
-                  state.categories,
-                  state.selectedCategoryId,
-                  controller,
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _buildServicesGrid(
-                    context,
-                    ref,
-                    state.filteredServices,
-                    favoritesState,
-                  ),
-                ),
-              ],
-            ),
+      ),
     );
   }
 
@@ -164,7 +221,7 @@ class ServicesScreen extends ConsumerWidget {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         childAspectRatio: 0.70,
@@ -217,25 +274,12 @@ class ServicesScreen extends ConsumerWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Container(
-                width: 65,
-                height: 65,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.grey.shade200, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: _buildServiceImage(service),
-                ),
+              ServiceIcon(
+                imageUrl: service.imageUrl,
+                iconName: service.icon,
+                containerSize: 64,
+                size: 30,
+                isNew: false, // We handle isNew badge separately
               ),
               if (isNew)
                 Positioned(
@@ -251,7 +295,7 @@ class ServicesScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.redAccent.withOpacity(0.4),
+                          color: Colors.redAccent.withValues(alpha: 0.4),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -279,7 +323,7 @@ class ServicesScreen extends ConsumerWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -310,70 +354,6 @@ class ServicesScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  Widget _buildServiceImage(Service service) {
-    if (service.imageUrl != null && service.imageUrl!.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(12),
-        child: Image.network(
-          service.imageUrl!,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return _buildFallbackIcon(service);
-          },
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.grey.withOpacity(0.5),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }
-    return _buildFallbackIcon(service);
-  }
-
-  Widget _buildFallbackIcon(Service service) {
-    return Center(
-      child: Icon(
-        _getServiceIcon(service.icon),
-        color: AppTheme.snappPrimary,
-        size: 28,
-      ),
-    );
-  }
-
-  IconData _getServiceIcon(String iconName) {
-    switch (iconName.toLowerCase()) {
-      case 'document':
-        return Icons.description_rounded;
-      case 'certificate':
-        return Icons.verified_rounded;
-      case 'license':
-        return Icons.card_membership_rounded;
-      case 'permit':
-        return Icons.assignment_rounded;
-      case 'registration':
-        return Icons.app_registration_rounded;
-      case 'renewal':
-        return Icons.refresh_rounded;
-      case 'payment':
-        return Icons.payment_rounded;
-      case 'consultation':
-        return Icons.psychology_rounded;
-      default:
-        return Icons.category_rounded;
-    }
   }
 }
 
@@ -463,15 +443,15 @@ class _ServiceSearchDelegate extends SearchDelegate<Service?> {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    width: 65,
-                    height: 65,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.grey.shade200, width: 1),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -490,14 +470,14 @@ class _ServiceSearchDelegate extends SearchDelegate<Service?> {
                                 errorBuilder: (_, __, ___) => Icon(
                                   Icons.category_rounded,
                                   color: AppTheme.snappPrimary,
-                                  size: 28,
+                                  size: 30,
                                 ),
                               ),
                             )
                           : Icon(
                               Icons.category_rounded,
                               color: AppTheme.snappPrimary,
-                              size: 28,
+                              size: 30,
                             ),
                     ),
                   ),

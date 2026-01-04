@@ -89,7 +89,7 @@ class TicketTimelineWidget extends StatelessWidget {
               boxShadow: isCurrent
                   ? [
                       BoxShadow(
-                        color: AppTheme.snappPrimary.withOpacity(0.4),
+                        color: AppTheme.snappPrimary.withValues(alpha: 0.4),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),

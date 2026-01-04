@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../config/app_theme.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 import 'admin_ticket_detail_screen.dart';
 
 class AdminTicketsScreen extends ConsumerStatefulWidget {
@@ -68,9 +69,11 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
       final title = (t['title'] ?? '').toString().toLowerCase();
       final phone = (t['profiles']?['phone_number'] ?? '').toString();
       final name = (t['profiles']?['full_name'] ?? '').toString().toLowerCase();
+      final id = (t['id'] ?? '').toString().toLowerCase();
       return title.contains(query) ||
           phone.contains(query) ||
-          name.contains(query);
+          name.contains(query) ||
+          id.contains(query);
     }).toList();
   }
 
@@ -111,16 +114,15 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
       appBar: AppBar(
         title: const Text('مدیریت تیکت‌ها'),
         centerTitle: true,
         backgroundColor: AppTheme.snappPrimary,
-        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
               setState(() => _loading = true);
               _loadTickets();
@@ -130,32 +132,44 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
       ),
       body: Column(
         children: [
-          // Search and Filter
+          // Filter & Search Container
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(20),
+              ),
+            ),
             child: Column(
               children: [
-                // Search
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'جستجوی تیکت...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                // Search Bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TextField(
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    decoration: const InputDecoration(
+                      hintText: 'جستجو در تیکت‌ها...',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.grey),
                     ),
                   ),
-                  onChanged: (value) => setState(() => _searchQuery = value),
                 ),
-                const SizedBox(height: 12),
-                // Status Filter
+                const SizedBox(height: 16),
+                // Status Filter Chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -163,20 +177,38 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
                       final isSelected = _statusFilter == option['value'];
                       return Padding(
                         padding: const EdgeInsets.only(left: 8),
-                        child: FilterChip(
-                          label: Text(option['label']!),
+                        child: ChoiceChip(
+                          label: Text(
+                            option['label']!,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontFamily: 'Vazir',
+                            ),
+                          ),
                           selected: isSelected,
                           onSelected: (selected) {
-                            setState(() {
-                              _statusFilter = option['value']!;
-                              _loading = true;
-                            });
-                            _loadTickets();
+                            if (selected) {
+                              setState(() {
+                                _statusFilter = option['value']!;
+                                _loading = true;
+                              });
+                              _loadTickets();
+                            }
                           },
-                          selectedColor: AppTheme.snappPrimary.withValues(
-                            alpha: 0.2,
+                          selectedColor: AppTheme.snappPrimary,
+                          backgroundColor: Colors.white,
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppTheme.snappPrimary
+                                : Colors.grey.shade300,
                           ),
-                          checkmarkColor: AppTheme.snappPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                         ),
                       );
                     }).toList(),
@@ -186,24 +218,32 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
             ),
           ),
 
-          // Tickets List
+          // List
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.snappPrimary,
+                    ),
+                  )
                 : _filteredTickets.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.inbox_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
+                          Icons.folder_off_outlined,
+                          size: 80,
+                          color: Colors.grey.shade300,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'تیکتی یافت نشد',
-                          style: TextStyle(color: Colors.grey[600]),
+                          'موردی یافت نشد',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 16,
+                            fontFamily: 'Vazir',
+                          ),
                         ),
                       ],
                     ),
@@ -211,11 +251,10 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
                 : RefreshIndicator(
                     onRefresh: _loadTickets,
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: _filteredTickets.length,
                       itemBuilder: (context, index) {
-                        final ticket = _filteredTickets[index];
-                        return _buildTicketCard(ticket);
+                        return _buildTicketCard(_filteredTickets[index]);
                       },
                     ),
                   ),
@@ -229,91 +268,166 @@ class _AdminTicketsScreenState extends ConsumerState<AdminTicketsScreen> {
     final status = ticket['status'] ?? 'open';
     final statusColor = _getStatusColor(status);
     final profile = ticket['profiles'] as Map<String, dynamic>?;
+    String date = '-';
+    if (ticket['created_at'] != null) {
+      final dt = DateTime.parse(ticket['created_at']).toLocal();
+      final jalali = Jalali.fromDateTime(dt);
+      date =
+          '${jalali.formatter.yyyy}/${jalali.formatter.mm}/${jalali.formatter.dd}';
+    }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  AdminTicketDetailScreen(ticketId: ticket['id']),
-            ),
-          ).then((_) => _loadTickets());
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      ticket['title'] ?? 'بدون عنوان',
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    AdminTicketDetailScreen(ticketId: ticket['id']),
+              ),
+            ).then((_) => _loadTickets());
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.snappPrimary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.confirmation_number_outlined,
+                        color: AppTheme.snappPrimary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ticket['service_title'] ?? 'خدمت نامشخص',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontFamily: 'Vazir',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            ticket['title'] ?? 'بدون عنوان',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              fontFamily: 'Vazir',
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        _getStatusLabel(status),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Vazir',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1),
+                ),
+
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.grey.shade200,
+                      child: const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      profile?['full_name'] ?? 'کاربر ناشناس',
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: statusColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      _getStatusLabel(status),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: statusColor,
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
+                        fontFamily: 'Vazir',
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                ticket['service_title'] ?? '',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
-              ),
-              const Divider(height: 20),
-              Row(
-                children: [
-                  Icon(Icons.person_outline, size: 16, color: Colors.grey[500]),
-                  const SizedBox(width: 6),
-                  Text(
-                    profile?['full_name'] ?? 'کاربر ناشناس',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.phone_outlined, size: 16, color: Colors.grey[500]),
-                  const SizedBox(width: 6),
-                  Text(
-                    profile?['phone_number'] ?? '-',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
-                      fontFamily: 'monospace',
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 12,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontFamily: 'Vazir',
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

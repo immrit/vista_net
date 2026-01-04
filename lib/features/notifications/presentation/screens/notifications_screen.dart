@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import '../../../../models/notification_model.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../widgets/hamburger_menu.dart';
 import '../../../../widgets/app_logo.dart';
+import '../../../../widgets/shimmer_loading.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../main/presentation/providers/main_scaffold_provider.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
   List<NotificationModel> _notifications = [];
   bool _isLoading = true;
@@ -95,16 +98,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   size: 24,
                 ),
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
+                  ref
+                      .read(mainScaffoldKeyProvider)
+                      .currentState
+                      ?.openEndDrawer();
                 },
               ),
             ),
           ),
         ],
       ),
-      endDrawer: const HamburgerMenu(),
+      // endDrawer: const HamburgerMenu(), // Removed
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: 5,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => ShimmerLoading.rectangular(
+                height: 140,
+                width: double.infinity,
+                shapeBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            )
           : _buildNotificationsList(),
     );
   }

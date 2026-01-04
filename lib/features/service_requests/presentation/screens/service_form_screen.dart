@@ -14,6 +14,8 @@ import '../../../../config/app_theme.dart';
 import '../../../documents/presentation/providers/documents_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
+import '../../../../widgets/shimmer_loading.dart';
+
 class ServiceFormScreen extends ConsumerStatefulWidget {
   final Service service;
 
@@ -87,7 +89,57 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  // Progress Bar Shimmer
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const ShimmerLoading.circular(size: 40),
+                      Expanded(
+                        child: Container(height: 2, color: Colors.grey[200]),
+                      ),
+                      const ShimmerLoading.circular(size: 40),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  // Form Fields Shimmer
+                  ShimmerLoading.rectangular(
+                    height: 56,
+                    width: double.infinity,
+                    shapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ShimmerLoading.rectangular(
+                    height: 56,
+                    width: double.infinity,
+                    shapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ShimmerLoading.rectangular(
+                    height: 56,
+                    width: double.infinity,
+                    shapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const Spacer(),
+                  ShimmerLoading.rectangular(
+                    height: 50,
+                    width: double.infinity,
+                    shapeBorder: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ],
+              ),
+            )
           : Column(
               children: [
                 _buildProgressBar(),
@@ -602,8 +654,9 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           onSaved: (v) => _formData[field.fieldName] = v,
           validator: field.isRequired
               ? (v) {
-                  if (v?.isEmpty == true)
+                  if (v?.isEmpty == true) {
                     return '${field.fieldLabel} الزامی است';
+                  }
                   if (!RegExp(
                     r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                   ).hasMatch(v ?? '')) {
@@ -630,8 +683,9 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
           onSaved: (v) => _formData[field.fieldName] = v,
           validator: field.isRequired
               ? (v) {
-                  if (v?.isEmpty == true)
+                  if (v?.isEmpty == true) {
                     return '${field.fieldLabel} الزامی است';
+                  }
                   if (!RegExp(r'^09\d{9}$').hasMatch(v ?? '')) {
                     return 'شماره موبایل نامعتبر است';
                   }
@@ -694,7 +748,7 @@ class _ServiceFormScreenState extends ConsumerState<ServiceFormScreen> {
     final currentValue = _formData[field.fieldName]?.toString();
 
     return DropdownButtonFormField<String>(
-      value: options.contains(currentValue) ? currentValue : null,
+      initialValue: options.contains(currentValue) ? currentValue : null,
       decoration: InputDecoration(
         labelText: field.fieldLabel,
         prefixIcon: const Icon(Icons.arrow_drop_down_circle_outlined),

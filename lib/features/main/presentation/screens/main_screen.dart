@@ -7,6 +7,9 @@ import '../../../service_requests/presentation/screens/my_tickets_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../services/presentation/screens/services_screen.dart';
 import '../../../admin/presentation/providers/admin_mode_provider.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../../widgets/hamburger_menu.dart';
+import '../providers/main_scaffold_provider.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -26,58 +29,34 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final screens = [
       const HomeScreen(),
       const ServicesScreen(),
+      const NotificationsScreen(),
       const MyTicketsScreen(),
       const ProfileScreen(),
     ];
 
     return Scaffold(
+      key: ref.watch(mainScaffoldKeyProvider),
       extendBody: true,
-      appBar: isAdmin
-          ? AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              actions: [
-                // Admin Mode Button - only visible for admin users
-                Container(
-                  margin: const EdgeInsets.only(left: 8),
-                  child: IconButton(
-                    onPressed: () {
-                      ref.read(adminModeProvider.notifier).switchToAdmin();
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.snappPrimary,
-                            AppTheme.snappSecondary,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.admin_panel_settings,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    tooltip: 'پنل مدیریت',
-                  ),
-                ),
-              ],
-            )
-          : null,
-      body: screens[_currentIndex],
+      appBar: null,
+      endDrawer: const HamburgerMenu(),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
+        padding: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(
-              height: 85,
+              height: 90,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.6),
+                    Colors.white.withValues(alpha: 0.4),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
@@ -91,57 +70,75 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                   width: 1,
                 ),
               ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                ),
-                child: BottomNavigationBar(
-                  currentIndex: _currentIndex,
-                  onTap: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                  },
-                  type: BottomNavigationBarType.fixed,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  selectedItemColor: AppTheme.snappPrimary,
-                  unselectedItemColor: AppTheme.snappGray,
-                  showSelectedLabels: true,
-                  showUnselectedLabels: true,
-                  selectedFontSize: 11,
-                  unselectedFontSize: 10,
-                  selectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Vazir',
+              child: Center(
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Vazir',
+                  child: BottomNavigationBar(
+                    currentIndex: _currentIndex,
+                    onTap: (index) {
+                      // Check if the tapped item is the Admin item (index 5)
+                      if (isAdmin && index == 5) {
+                        ref.read(adminModeProvider.notifier).switchToAdmin();
+                        return;
+                      }
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    },
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    selectedItemColor: AppTheme.snappPrimary,
+                    unselectedItemColor: AppTheme.snappGray,
+                    showSelectedLabels: true,
+                    showUnselectedLabels: true,
+                    selectedFontSize: 10,
+                    unselectedFontSize: 9,
+                    selectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Vazir',
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Vazir',
+                    ),
+                    items: [
+                      const BottomNavigationBarItem(
+                        icon: Icon(Icons.home_outlined),
+                        activeIcon: Icon(Icons.home_rounded),
+                        label: 'خانه',
+                      ),
+                      const BottomNavigationBarItem(
+                        icon: Icon(Icons.grid_view),
+                        activeIcon: Icon(Icons.grid_view_rounded),
+                        label: 'خدمات',
+                      ),
+                      const BottomNavigationBarItem(
+                        icon: Icon(Icons.notifications_none_outlined),
+                        activeIcon: Icon(Icons.notifications_rounded),
+                        label: 'اعلان‌ها',
+                      ),
+                      const BottomNavigationBarItem(
+                        icon: Icon(Icons.confirmation_number_outlined),
+                        activeIcon: Icon(Icons.confirmation_number_rounded),
+                        label: 'درخواست‌ها',
+                      ),
+                      const BottomNavigationBarItem(
+                        icon: Icon(Icons.person_outline_rounded),
+                        activeIcon: Icon(Icons.person_rounded),
+                        label: 'پروفایل',
+                      ),
+                      if (isAdmin)
+                        const BottomNavigationBarItem(
+                          icon: Icon(Icons.admin_panel_settings_outlined),
+                          activeIcon: Icon(Icons.admin_panel_settings_rounded),
+                          label: 'مدیریت',
+                        ),
+                    ],
                   ),
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.home_outlined),
-                      activeIcon: Icon(Icons.home_rounded),
-                      label: 'خانه',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.grid_view),
-                      activeIcon: Icon(Icons.grid_view_rounded),
-                      label: 'خدمات',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.confirmation_number_outlined),
-                      activeIcon: Icon(Icons.confirmation_number_rounded),
-                      label: 'درخواست‌ها',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.person_outline_rounded),
-                      activeIcon: Icon(Icons.person_rounded),
-                      label: 'پروفایل',
-                    ),
-                  ],
                 ),
               ),
             ),

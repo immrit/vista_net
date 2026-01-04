@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../config/app_theme.dart';
+
+// Custom Cache Manager for 30 days persistence
+class CustomCacheManager {
+  static const key = 'customServiceIconsCache';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(days: 30),
+      maxNrOfCacheObjects: 200,
+      repo: JsonCacheInfoRepository(databaseName: key),
+      fileService: HttpFileService(),
+    ),
+  );
+}
 
 class ServiceIcon extends StatelessWidget {
   final String? imageUrl;
@@ -9,13 +25,13 @@ class ServiceIcon extends StatelessWidget {
   final double? containerSize;
   final Color? backgroundColor;
   final bool usePadding;
-  final bool isNew; // Added for generic badge support if needed later
+  final bool isNew;
 
   const ServiceIcon({
     super.key,
     required this.imageUrl,
     required this.iconName,
-    this.size = 32, // Slightly larger default for better visibility
+    this.size = 80, // Standardized icon size
     this.iconColor,
     this.containerSize,
     this.backgroundColor,
@@ -28,7 +44,7 @@ class ServiceIcon extends StatelessWidget {
     // Default container style based on reference image
     // Dark background, squircle shape
     final effectiveContainerSize =
-        containerSize ?? 65.0; // Default size from design
+        containerSize ?? 64.0; // Standardized container size
 
     return Stack(
       children: [
@@ -37,7 +53,9 @@ class ServiceIcon extends StatelessWidget {
           height: effectiveContainerSize,
           clipBehavior: Clip.hardEdge,
 
-          padding: usePadding ? const EdgeInsets.all(12) : null,
+          padding: usePadding
+              ? EdgeInsets.all(effectiveContainerSize * 0.05)
+              : null,
           decoration: BoxDecoration(
             color:
                 backgroundColor ??
@@ -45,7 +63,7 @@ class ServiceIcon extends StatelessWidget {
             borderRadius: BorderRadius.circular(22), // Squircle-ish radius
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -65,7 +83,7 @@ class ServiceIcon extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.redAccent.withOpacity(0.4),
+                    color: Colors.redAccent.withValues(alpha: 0.4),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -87,37 +105,32 @@ class ServiceIcon extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    // If we have an image URL, try to load it
+    // If we have an image URL, try to load it - fill the entire container
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
-        width: size, // Use provided icon size
-        height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildFallbackIcon();
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            width: size * 0.6,
-            height: size * 0.6,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.white.withOpacity(0.5),
-              ),
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                  : null,
-            ),
-          );
-        },
+      // For images, use the full container size (minus padding if applied)
+      final effectiveContainerSize = containerSize ?? 64.0;
+      final imageSize = usePadding
+          ? effectiveContainerSize - (effectiveContainerSize * 0.05 * 2)
+          : effectiveContainerSize;
+
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
+          cacheManager: CustomCacheManager.instance,
+          width: imageSize,
+          height: imageSize,
+          fit: BoxFit.contain, // Cover to fill the space
+          placeholder: (context, url) => Container(
+            width: imageSize,
+            height: imageSize,
+            color: Colors.grey[100],
+          ),
+          errorWidget: (context, url, error) => _buildFallbackIcon(),
+        ),
       );
     }
 
-    // Fallback to icon
     return _buildFallbackIcon();
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../mock/cafebazaar_flutter.dart';
 
@@ -256,7 +257,7 @@ class BillingService {
         await _inAppPurchase.disconnect();
       }
     } catch (e) {
-      print('Error disconnecting billing service: $e');
+      debugPrint('Error disconnecting billing service: $e');
     }
   }
 

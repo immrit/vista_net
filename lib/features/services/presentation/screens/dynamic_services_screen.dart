@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import '../../../../models/service_category_model.dart';
 import '../../../../models/service_model.dart';
 import '../../../../services/service_api.dart';
-import '../../../../widgets/hamburger_menu.dart';
 import '../../../../widgets/app_logo_title.dart';
 import '../../../../config/app_theme.dart';
 import '../../../service_requests/presentation/screens/new_request_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../main/presentation/providers/main_scaffold_provider.dart';
 
-class DynamicServicesScreen extends StatefulWidget {
+class DynamicServicesScreen extends ConsumerStatefulWidget {
   const DynamicServicesScreen({super.key});
 
   @override
-  State<DynamicServicesScreen> createState() => _DynamicServicesScreenState();
+  ConsumerState<DynamicServicesScreen> createState() =>
+      _DynamicServicesScreenState();
 }
 
-class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
+class _DynamicServicesScreenState extends ConsumerState<DynamicServicesScreen> {
   final ServiceApi _serviceApi = ServiceApi();
   final TextEditingController _searchController = TextEditingController();
 
@@ -127,14 +129,17 @@ class _DynamicServicesScreenState extends State<DynamicServicesScreen> {
                   size: 24,
                 ),
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
+                  ref
+                      .read(mainScaffoldKeyProvider)
+                      .currentState
+                      ?.openEndDrawer();
                 },
               ),
             ),
           ),
         ],
       ),
-      endDrawer: const HamburgerMenu(),
+      // endDrawer: const HamburgerMenu(),
       body: Column(
         children: [
           // نوار جستجوی مدرن

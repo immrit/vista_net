@@ -5,18 +5,19 @@ import '../../../../services/ticket_service.dart';
 import '../../../../services/chat_service.dart';
 import '../../../../widgets/ticket_details_dialog.dart';
 import '../../../../widgets/enhanced_tickets_table.dart';
-import '../../../../widgets/hamburger_menu.dart';
 import 'ticket_chat_screen.dart'; // Same directory
 import '../../../support_chat/presentation/screens/support_chat_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../main/presentation/providers/main_scaffold_provider.dart';
 
-class TicketsScreen extends StatefulWidget {
+class TicketsScreen extends ConsumerStatefulWidget {
   const TicketsScreen({super.key});
 
   @override
-  State<TicketsScreen> createState() => _TicketsScreenState();
+  ConsumerState<TicketsScreen> createState() => _TicketsScreenState();
 }
 
-class _TicketsScreenState extends State<TicketsScreen> {
+class _TicketsScreenState extends ConsumerState<TicketsScreen> {
   final _ticketService = TicketService();
   final _chatService = ChatService();
   List<TicketModel> _tickets = [];
@@ -41,7 +42,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
         _tickets = tickets;
       });
     } catch (e) {
-      print('Error loading tickets: $e');
+      debugPrint('Error loading tickets: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -181,14 +182,17 @@ class _TicketsScreenState extends State<TicketsScreen> {
                   size: 24,
                 ),
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
+                  ref
+                      .read(mainScaffoldKeyProvider)
+                      .currentState
+                      ?.openEndDrawer();
                 },
               ),
             ),
           ),
         ],
       ),
-      endDrawer: const HamburgerMenu(),
+      // endDrawer: const HamburgerMenu(),
       body: Column(
         children: [
           // Filter Chips
@@ -532,7 +536,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
         onTicketTap: _showTicketDetails,
         onStatusChange: (status) {
           // تغییر وضعیت تیکت
-          print('تغییر وضعیت به: $status');
+          debugPrint('تغییر وضعیت به: $status');
         },
         showActions: true,
       ),

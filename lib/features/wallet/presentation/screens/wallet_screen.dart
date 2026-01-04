@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../services/billing_service.dart';
+import '../../../../widgets/shimmer_loading.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -197,7 +198,7 @@ class _BillingScreenState extends State<BillingScreen> {
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(),
+              child: Center(child: ShimmerLoading.circular(size: 40)),
             ),
 
           // Products list

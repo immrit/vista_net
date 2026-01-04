@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../widgets/hamburger_menu.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../main/presentation/providers/main_scaffold_provider.dart';
 
-class SpecialServicesScreen extends StatelessWidget {
+class SpecialServicesScreen extends ConsumerWidget {
   const SpecialServicesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.snappLightGray,
       appBar: AppBar(
@@ -36,14 +37,17 @@ class SpecialServicesScreen extends StatelessWidget {
                   size: 24,
                 ),
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer();
+                  ref
+                      .read(mainScaffoldKeyProvider)
+                      .currentState
+                      ?.openEndDrawer();
                 },
               ),
             ),
           ),
         ],
       ),
-      endDrawer: const HamburgerMenu(),
+      // endDrawer: const HamburgerMenu(),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

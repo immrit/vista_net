@@ -71,6 +71,11 @@ dependencies:
   # Hive for offline session storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  flutter_localizations:
+    sdk: flutter
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  flutter_cache_manager: ^3.4.1
   # file_picker: ^6.1.1
   
   # Cafe Bazaar In-App Billing (temporary mock implementation)

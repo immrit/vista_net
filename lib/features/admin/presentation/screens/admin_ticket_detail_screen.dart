@@ -63,7 +63,7 @@ class _AdminTicketDetailScreenState
         });
       }
     } catch (e) {
-      print('Error loading ticket: $e');
+      debugPrint('Error loading ticket: $e');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -84,7 +84,7 @@ class _AdminTicketDetailScreenState
         _scrollToBottom();
       }
     } catch (e) {
-      print('Error loading messages: $e');
+      debugPrint('Error loading messages: $e');
     }
   }
 
@@ -160,7 +160,7 @@ class _AdminTicketDetailScreenState
         });
       }
     } catch (e) {
-      print('Error sending message: $e');
+      debugPrint('Error sending message: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -197,7 +197,7 @@ class _AdminTicketDetailScreenState
         );
       }
     } catch (e) {
-      print('Error updating status: $e');
+      debugPrint('Error updating status: $e');
     }
   }
 

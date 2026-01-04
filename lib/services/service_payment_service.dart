@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../mock/cafebazaar_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -164,7 +165,7 @@ class ServicePaymentService {
 
       return response.toString();
     } catch (e) {
-      print('Error creating payment record: $e');
+      debugPrint('Error creating payment record: $e');
       return null;
     }
   }
@@ -189,7 +190,7 @@ class ServicePaymentService {
         },
       );
     } catch (e) {
-      print('Error confirming payment: $e');
+      debugPrint('Error confirming payment: $e');
     }
   }
 
@@ -204,7 +205,7 @@ class ServicePaymentService {
           })
           .eq('id', paymentId);
     } catch (e) {
-      print('Error marking payment as failed: $e');
+      debugPrint('Error marking payment as failed: $e');
     }
   }
 
@@ -226,7 +227,7 @@ class ServicePaymentService {
 
       return false;
     } catch (e) {
-      print('Error checking payment status from database: $e');
+      debugPrint('Error checking payment status from database: $e');
       return false;
     }
   }
@@ -263,7 +264,7 @@ class ServicePaymentService {
           )
           .toList();
     } catch (e) {
-      print('Error getting payment history: $e');
+      debugPrint('Error getting payment history: $e');
       return [];
     }
   }
@@ -289,7 +290,7 @@ class ServicePaymentService {
       _paidServices = paidServicesFromDb;
       await _savePaidServices();
     } catch (e) {
-      print('Error syncing with database: $e');
+      debugPrint('Error syncing with database: $e');
     }
   }
 
@@ -332,7 +333,7 @@ class ServicePaymentService {
         await _inAppPurchase.disconnect();
       }
     } catch (e) {
-      print('Error disconnecting payment service: $e');
+      debugPrint('Error disconnecting payment service: $e');
     }
   }
 

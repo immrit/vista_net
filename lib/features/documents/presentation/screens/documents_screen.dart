@@ -280,7 +280,7 @@ class _AddDocumentFormState extends ConsumerState<_AddDocumentForm> {
                     padding: const EdgeInsets.all(16),
                     backgroundColor:
                         _fileType == 'image' && _selectedFile != null
-                        ? Colors.blue.withOpacity(0.1)
+                        ? Colors.blue.withValues(alpha: 0.1)
                         : null,
                   ),
                 ),
@@ -294,7 +294,7 @@ class _AddDocumentFormState extends ConsumerState<_AddDocumentForm> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                     backgroundColor: _fileType == 'pdf' && _selectedFile != null
-                        ? Colors.red.withOpacity(0.1)
+                        ? Colors.red.withValues(alpha: 0.1)
                         : null,
                   ),
                 ),

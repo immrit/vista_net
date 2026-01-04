@@ -379,4 +379,36 @@ class AuthService {
       debugPrint('[Auth] Error saving user session: $e');
     }
   }
+
+  // Update user profile
+  Future<Map<String, dynamic>> updateProfile({String? fullName}) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return {'success': false, 'message': 'کاربر وارد نشده است'};
+      }
+
+      final updates = <String, dynamic>{
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (fullName != null) updates['full_name'] = fullName;
+
+      await _supabase.from('profiles').update(updates).eq('id', user.id);
+
+      // Update local session
+      final currentSession = await SessionStorageService.getSession();
+      if (currentSession != null) {
+        await _saveUserSession(
+          currentSession.userId ?? '',
+          currentSession.phoneNumber ?? '',
+          fullName ?? currentSession.fullName ?? '',
+        );
+      }
+
+      return {'success': true, 'message': 'پروفایل با موفقیت بروز شد'};
+    } catch (e) {
+      debugPrint('[Auth] Error updating profile: $e');
+      return {'success': false, 'message': 'خطا در بروزرسانی پروفایل'};
+    }
+  }
 }

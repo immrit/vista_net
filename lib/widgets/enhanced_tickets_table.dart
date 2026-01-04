@@ -485,10 +485,8 @@ class _EnhancedTicketsTableState extends State<EnhancedTicketsTable> {
         title: const Text('تغییر وضعیت تیکت'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: TicketStatus.values.map((status) {
-            return RadioListTile<TicketStatus>(
-              title: Text(_getStatusText(status)),
-              value: status,
+          children: [
+            RadioGroup<TicketStatus>(
               groupValue: ticket.status,
               onChanged: (value) {
                 if (value != null) {
@@ -496,8 +494,18 @@ class _EnhancedTicketsTableState extends State<EnhancedTicketsTable> {
                   Navigator.pop(context);
                 }
               },
-            );
-          }).toList(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: TicketStatus.values.map((status) {
+                  return RadioListTile<TicketStatus>(
+                    title: Text(_getStatusText(status)),
+                    value: status,
+                    // groupValue and onChanged are handled by RadioGroup
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
